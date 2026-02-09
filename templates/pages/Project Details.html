@@ -1,270 +1,251 @@
 {% load static %}
 {% include "base.html" %}
 {% block content %}
-     <link rel="stylesheet" href="{%static 'css/detiles project.css'%}">
-   
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-                <span>منصة مشاريع التخرج</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{%url 'index'%}">الرئيسية</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{%url 'BrowseProjects'%}">تصفح المشاريع</a>
-                    </li>
-                    {% if user != none %}
-                        {% if userType == 'student' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{%url 'studentProfile'%}">حسابي</a>
-                        </li>
-                        {% elif userType == 'supervisor' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{%url 'supervisorDashboard'%}">حسابي</a>
-                        </li>
-                        {% endif %} 
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-light text-primary ms-2" href="{%url 'login'%}">تسجيل الدخول</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
+<link rel="stylesheet" href="{% static 'css/detiles project.css' %}">
 
-    <!-- Project Details -->
-    <div class="container mt-4">
-        <div class="row">
-            <!-- Main Content -->
-            <div class="col-lg-8">
-                <!-- Project Header -->
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                    <div>
-                        <h1 class="mb-2">{{project.ProjectName}}</h1>
-                        <div class="d-flex flex-wrap gap-2 mb-2">
-                            <span class="tag">{{project.MajorID.major_name}}</span>
-                            <span class="tag">{{project.UniversityID.univ_name}}</span>
-                            <span class="tag">{{project.yearOfProject}}</span>
-                        </div>
-                        <p class="mb-0">
-                            <strong>بواسطة:</strong> 
-                            <a href="#" class="text-decoration-none">{{project.Student_id.fullname}}</a>
-                        </p>
+<!-- Project Details -->
+<div class="container mt-4">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Project Header -->
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h1 class="mb-2">{{ project.ProjectName }}</h1>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <span class="tag">{{ project.MajorID.major_name }}</span>
+                        <span class="tag">{{ project.UniversityID.univ_name }}</span>
+                        <span class="tag">{{ project.yearOfProject }}</span>
                     </div>
-                    
-                    <!-- Actions for logged in user -->
-                    <div class="btn-group project-actions d-none d-md-block">
-                        <button class="btn btn-outline-primary" title="طباعة">
-                            <i class="bi bi-printer"></i>
-                        </button>
-                        <button class="btn btn-outline-primary" title="حفظ PDF">
-                            <i class="bi bi-file-earmark-pdf"></i>
-                        </button>
-                        <button class="btn btn-outline-primary" title="مشاركة">
-                            <i class="bi bi-share"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Project Image -->
-                <div class="project-image mb-4">
-                    <img src="https://via.placeholder.com/800x500?text= صورة+الغلاف" alt="صورة الغلاف">
-                </div>
-                
-                <!-- Project Description -->
-                <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
-                    <h4 class="mb-3">وصف المشروع</h4>
-                    <p>
-                        {{project.Description}}
+                    <p class="mb-0">
+                        <strong>بواسطة:</strong>
+                        <a href="#" class="text-decoration-none">{{ project.Student_id.fullname }}</a>
                     </p>
                 </div>
-                
-                <!-- Media Gallery -->
-                <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
-                    <h4 class="mb-3">معرض الوسائط</h4>
-                    
-                    <!-- Video -->
-                    <div class="video-container mb-4">
-                        {% for video in videos %}
-                        <video controls class="w-100">
-                            <source src="{{ video.vedio.url }}" type="video/mp4">
-                            متصفحك لا يدعم تشغيل الفيديو.
-                        </video>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Images -->
-                    <div class="row g-2">
+
+                <!-- Actions for logged in user -->
+                <div class="btn-group project-actions d-none d-md-block">
+                    <button class="btn btn-outline-primary" title="طباعة">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" title="حفظ PDF">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" title="مشاركة">
+                        <i class="bi bi-share"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Project Image (cover = أول صورة إن وُجدت) -->
+            <div class="project-image mb-4">
+                {% with project.projectpictures_set.all.0 as cover %}
+                    {% if cover %}
+                        <img src="{{ cover.image.url }}" alt="{{ project.ProjectName }}" class="img-fluid w-100 rounded">
+                    {% else %}
+                        <img src="https://via.placeholder.com/800x500?text=صورة+الغلاف" alt="صورة الغلاف" class="img-fluid w-100 rounded">
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Project Description -->
+            <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
+                <h4 class="mb-3">وصف المشروع</h4>
+                <p>{{ project.Description }}</p>
+            </div>
+
+            <!-- Media Gallery -->
+            <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
+                <h4 class="mb-3">معرض الوسائط</h4>
+
+                <!-- Video -->
+                <div class="video-container mb-4">
+                    {% for video in videos %}
+                        {% if video.vedio %}
+                            <video controls class="w-100 mb-3">
+                                <source src="{{ video.vedio.url }}" type="video/mp4">
+                                متصفحك لا يدعم تشغيل الفيديو.
+                            </video>
+                        {% endif %}
+                    {% empty %}
+                        <p class="text-muted">لا توجد فيديوهات مرفوعة.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Images -->
+                <div class="row g-2">
+                    {% if pics %}
                         {% for pic in pics %}
                         <div class="col-6 col-md-4">
-                            <img src="{{pic.image.url}}" class="img-fluid rounded">
+                            <img src="{{ pic.image.url }}" class="img-fluid rounded" alt="صورة المشروع">
                         </div>
                         {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <p class="text-muted">لا توجد صور مرفوعة للمشروع.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- PDF -->
+                {% if project.pdf_file %}
+                <div class="mb-4 mt-3">
+                    <center>
+                        <p>ملف PDF الخاص بالمشروع</p>
+                        <a href="{{ project.pdf_file.url }}" download>تحميل الملف</a>
+                    </center>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Evaluation Criteria -->
+            <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
+                <h4 class="mb-3">معايير التقييم</h4>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>الإبداع</strong>
+                            <span class="rating-stars">{{ Creativity }}</span>
+                        </div>
+                        <div class="progress" style="height: 0.5rem;">
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio Creativity 1 20 %}%" aria-valuenow="{% widthratio Creativity 1 20 %}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
 
-                    <!-- PDF -->
-                    <div class="mb-4">
-                        <center>
-                        <p> ملف pdf الخاص بالمشروع </p>
-                            <a href="{{project.pdf_file.url}}" download>تحميل الملف</a>
-                        </center>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>التنفيذ</strong>
+                            <span class="rating-stars">{{ Implementation }}</span>
+                        </div>
+                        <div class="progress" style="height: 0.5rem;">
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio Implementation 1 20 %}%" aria-valuenow="{% widthratio Implementation 1 20 %}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Evaluation Criteria -->
-                <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
-                    <h4 class="mb-3">معايير التقييم</h4>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between mb-1">
-                                <strong>الإبداع</strong>
-                                <span class="rating-stars">
-                                    {{Creativity}}
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 0.5rem;">
-                                <div class="progress-bar" role="progressbar" style="width: {%widthratio Creativity 1 20%}%" aria-valuenow="{%widthratio Creativity 1 20%}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>الوظائف</strong>
+                            <span class="rating-stars">{{ Functionality }}</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between mb-1">
-                                <strong>التنفيذ</strong>
-                                <span class="rating-stars">
-                                    {{Implementation}}
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 0.5rem;">
-                                <div class="progress-bar" role="progressbar" style="width: {%widthratio Implementation 1 20%}%" aria-valuenow="{%widthratio Implementation 1 20%}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
+                        <div class="progress" style="height: 0.5rem;">
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio Functionality 1 20 %}%" aria-valuenow="{% widthratio Functionality 1 20 %}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between mb-1">
-                                <strong>الوظائف</strong>
-                                <span class="rating-stars">
-                                    {{Functionality}}
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 0.5rem;">
-                                <div class="progress-bar" role="progressbar" style="width: {%widthratio Functionality 1 20%}%" aria-valuenow="{%widthratio Functionality 1 20%}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>الواجهة</strong>
+                            <span class="rating-stars">{{ Interface }}</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between mb-1">
-                                <strong>الواجهة</strong>
-                                <span class="rating-stars">
-                                    {{Interface}}
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 0.5rem;">
-                                <div class="progress-bar" role="progressbar" style="width: {%widthratio Interface 1 20%}%" aria-valuenow="{%widthratio Interface 1 20%}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
+                        <div class="progress" style="height: 0.5rem;">
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio Interface 1 20 %}%" aria-valuenow="{% widthratio Interface 1 20 %}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Comments Section -->
-                <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
-                    <h4 class="mb-3">التعليقات</h4>
-                    
-                    <!-- Add Comment Form -->
-                    <form class="mb-4" method="POST" enctype="multipart/form-data"> 
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="commentText" class="form-label">أضف تعليقك</label>
-                            <textarea class="form-control" id="commentText" name="comment" rows="3" placeholder="اكتب تعليقك هنا..."></textarea>
-                        </div>
-                        <button type="submit" name="sendcomment" class="btn btn-primary">إرسال التعليق</button>
-                    </form>
-                    
-                    <!-- Comments List -->
+            </div>
+
+            <!-- Comments Section -->
+            <div class="bg-white p-4 rounded-3 shadow-sm mb-4">
+                <h4 class="mb-3">التعليقات</h4>
+
+                <!-- Add Comment Form -->
+                <form class="mb-4" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
                     <div class="mb-3">
-                        <!-- Comment 1 -->
-                         {% for comment in comments %}
-                        <div class="comment">
+                        <label for="commentText" class="form-label">أضف تعليقك</label>
+                        <textarea class="form-control" id="commentText" name="comment" rows="3" placeholder="اكتب تعليقك هنا..."></textarea>
+                    </div>
+                    <button type="submit" name="sendcomment" class="btn btn-primary">إرسال التعليق</button>
+                </form>
+
+                <!-- Comments List -->
+                <div class="mb-3">
+                    {% if comments %}
+                        {% for comment in comments %}
+                        <div class="comment mb-3">
                             <div class="d-flex justify-content-between">
                                 <div class="d-flex align-items-center">
                                     <div>
-                                        <strong>{{comment.SupervisorID.fullname}}</strong>
-                                        <small class="text-muted d-block">مشرف - {{comment.SupervisorID.university.univ_name}}</small>
+                                        <strong>{{ comment.SupervisorID.fullname }}</strong>
+                                        <small class="text-muted d-block">مشرف - {{ comment.SupervisorID.university.univ_name }}</small>
                                     </div>
                                 </div>
-                                <small class="text-muted">{{comment.created_at}}</small>
+                                <small class="text-muted">{{ comment.created_at }}</small>
                             </div>
-                            <p class="mt-2">{{comment.comment}}</p>
+                            <p class="mt-2">{{ comment.comment }}</p>
                         </div>
                         {% endfor %}
+                    {% else %}
+                        <p class="text-muted">لا توجد تعليقات بعد.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Project Info Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">معلومات إضافية</h5>
+
+                    <div class="mb-3">
+                        <i class="bi bi-calendar-event me-2 text-primary"></i>
+                        <strong>تاريخ الرفع:</strong>
+                        <span class="text-muted">{{ project.UploadDate }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <i class="bi bi-heart-fill me-2 text-danger"></i>
+                        <strong>التقييم:</strong>
+                        <span class="text-muted">{{ project.rates }}</span>
+                    </div>
+
+                   {# ===== زر تقييم المشروع (للمشرف فقط) ===== #}
+{% if userType == 'supervisor' %}
+    {% if project.status == 'accepted' %}
+        <a href="{% url 'ProjectEvaluationForm' project.id %}"
+           class="btn btn-primary w-100 mt-3">
+            <i class="bi bi-star-fill me-2"></i>
+            تقييم المشروع
+        </a>
+
+    {% elif project.status == 'pending' %}
+        <button class="btn btn-warning w-100 mt-3" disabled>
+            المشروع قيد انتظار الموافقة
+        </button>
+
+    {% elif project.status == 'rejected' %}
+        <div class="alert alert-danger mt-3 text-center">
+            تم رفض هذا المشروع
+        </div>
+    {% endif %}
+{% endif %}
+
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary">
+                            <i class="bi bi-hand-thumbs-up me-2"></i> أعجبني
+                        </button>
+                        <button class="btn btn-outline-secondary">
+                            <i class="bi bi-bookmark me-2"></i> حفظ المشروع
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Sidebar -->
-            <div class="col-lg-4">
-                <!-- Project Info Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">معلومات إضافية</h5>
-                        
-                        <div class="mb-3">
-                            <i class="bi bi-calendar-event me-2 text-primary"></i>
-                            <strong>تاريخ الرفع:</strong>
-                            <span class="text-muted">{{project.UploadDate}}</span>
-                        </div>
-        
-                        <div class="mb-3">
-                            <i class="bi bi-heart-fill me-2 text-danger"></i>
-                            <strong>التقييم:</strong>
-                            <span class="text-muted">{{project.rates}}</span>
-                        </div>
-                        
-                        <div class="d-grid gap-2 mt-4">
-                            <button class="btn btn-primary">
-                                <i class="bi bi-hand-thumbs-up me-2"></i>
-                                أعجبني
-                            </button>
-                            <button class="btn btn-outline-secondary">
-                                <i class="bi bi-bookmark me-2"></i>
-                                حفظ المشروع
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Actions for logged in user -->
-                <div class="card shadow-sm d-md-none mb-4">
-                    <div class="card-body">
-                        <div class="btn-group w-100">
-                            <button class="btn btn-outline-primary" title="طباعة">
-                                <i class="bi bi-printer"></i>
-                            </button>
-                            <button class="btn btn-outline-primary" title="حفظ PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
-                            </button>
-                            <button class="btn btn-outline-primary" title="مشاركة">
-                                <i class="bi bi-share"></i>
-                            </button>
-                        </div>
+
+            <!-- Mobile Actions -->
+            <div class="card shadow-sm d-md-none mb-4">
+                <div class="card-body">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-primary" title="طباعة"><i class="bi bi-printer"></i></button>
+                        <button class="btn btn-outline-primary" title="حفظ PDF"><i class="bi bi-file-earmark-pdf"></i></button>
+                        <button class="btn btn-outline-primary" title="مشاركة"><i class="bi bi-share"></i></button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-        </div>
-    </footer>
+</div>
 {% endblock content %}

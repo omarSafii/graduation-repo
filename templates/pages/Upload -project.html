@@ -1,5 +1,5 @@
+{% extends "base.html" %}
 {% load static %}
-{% include "base.html" %}
 {% block content %}
     <style>
         body {
@@ -100,8 +100,7 @@
             }
         }
     </style>
-</head>
-<body>
+
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
@@ -115,16 +114,16 @@
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{%url 'studentProfile' %}">حسابي</a>
+                        <a class="nav-link" href="{% url 'studentProfile' %}">حسابي</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="{%url 'UploadProject' %}">رفع مشروع</a>
+                        <a class="nav-link active" href="{% url 'UploadProject' %}">رفع مشروع</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{%url 'MyProject'%}">مشاريعي</a>
+                        <a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{%url 'index'%}">الرئيسية</a>
+                        <a class="nav-link" href="{% url 'index' %}">الرئيسية</a>
                     </li>
                 </ul>
             </div>
@@ -144,8 +143,8 @@
                         <h4>المعلومات الأساسية</h4>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="projectTitle" class="form-label">اسم الطالب</label>
-                                <input type="text" class="form-control" id="projectTitle" value="{{user}}">
+                                <label for="studentName" class="form-label">اسم الطالب</label>
+                                <input type="text" class="form-control" id="studentName" value="{{ user }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label for="projectTitle" class="form-label">عنوان المشروع</label>
@@ -153,26 +152,24 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="projectPartner" class="form-label">زميل المشروع (اختياري)</label>
-                                <select class="form-select" id="projectPartner" name="projectPartner">
+                                <select class="form-select" id="projectPartner" name="collaborator">
                                     <option selected value="">اختر زميل للمشروع</option>
-                                    <option value="ahmed_mohamed">أحمد محمد</option>
-                                    <option value="sara_ali">سارة علي</option>
-                                    <option value="mohamed_khalid">محمد خالد</option>
-                                    <option value="fatima_ahmed">فاطمة أحمد</option>
-                                    <option value="khaled_omar">خالد عمر</option>
-                                    <!-- Add more static student options as needed -->
+                                    {% for s in all_students %}
+                                      <option value="{{ s.id }}">{{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}</option>
+                                    {% empty %}
+                                      <option value="">لا يوجد طلاب مسجلين</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label for="projectSupervisor" class="form-label">المشرف</label>
-                                <select class="form-select" id="projectSupervisor" name="projectSupervisor" required>
+                                <select class="form-select" id="projectSupervisor" name="supervisor" required>
                                     <option selected value="">اختر المشرف</option>
-                                    <option value="dr_ali_hassan">د. علي حسن</option>
-                                    <option value="dr_samia_ibrahim">د. سامية إبراهيم</option>
-                                    <option value="dr_mohamed_farouk">د. محمد فاروق</option>
-                                    <option value="dr_noura_ahmed">د. نورا أحمد</option>
-                                    <option value="dr_khaled_saeed">د. خالد سعيد</option>
-                                    <!-- Add more supervisor options as needed -->
+                                    {% for sup in supervisors %}
+                                      <option value="{{ sup.id }}">{{ sup.fullname }} {% if sup.position %}- {{ sup.position }}{% endif %}</option>
+                                    {% empty %}
+                                      <option value="">لا يوجد مشرفين مسجلين</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -185,7 +182,7 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="graduationYear" class="form-label">سنة انشاء المشروع/ حلقةالبحث>
+                                <label for="graduationYear" class="form-label">سنة انشاء المشروع/ حلقةالبحث</label>
                                 <input type="number" class="form-control" name="graduationYear" id="graduationYear" placeholder="2023">
                             </div>
                         </div>
@@ -269,5 +266,5 @@
         </div>
     </footer>
 
-  <script src="{%static 'js/main.js'%}"></script>
+  <script src="{% static 'js/main.js' %}"></script>
 {% endblock content %}

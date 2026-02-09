@@ -1,6 +1,7 @@
+{% extends "base.html" %}
 {% load static %}
-{% include "base.html" %}
 {% block content %}
+
     <link rel="stylesheet" href="{% static 'css/student_requests.css' %}">
 </head>
 <body>
@@ -70,11 +71,12 @@
                     <hr class="my-4">
                     
                     <h6 class="text-muted">الإحصائيات</h6>
-                    <div class="mt-3">
-                        <p class="mb-1">الطلبات الجديدة: <strong>5</strong></p>
-                        <p class="mb-1">الطلبات المقبولة: <strong>12</strong></p>
-                        <p class="mb-0">الطلبات المرفوضة: <strong>3</strong></p>
-                    </div>
+                   <div class="mt-3">
+    <p class="mb-1">الطلبات الجديدة: <strong>{{ pending_projects_count }}</strong></p>
+    <p class="mb-1">الطلبات المقبولة: <strong>{{ accepted_projects_count }}</strong></p>
+    <p class="mb-0">الطلبات المرفوضة: <strong>{{ rejected_projects_count }}</strong></p>
+</div>
+
                 </div>
             </nav>
 
@@ -85,217 +87,96 @@
                         <h2>طلبات الطلاب</h2>
                         <h4>الطلبات المعلقة للموافقة:</h4>
                     </div>
-                    <form method="POST" enctype="multipart/form-data"> 
-                        {% csrf_token %}
-                        <div class="d-flex gap-2">
-                            <select class="form-select" style="width: auto;" name="statusFilter">
-                                <option value="all" selected>جميع الطلبات</option>
-                                <option value="pending">طلبات جديدة</option>
-                                <option value="accepted">مقبولة</option>
-                                <option value="rejected">مرفوضة</option>
-                            </select>
-                            <button type="submit" name="filter" class="btn btn-primary">تصفية</button>
-                        </div>
-                    </form>
+                    
                 </div>
                 
                 <!-- Requests Grid -->
-                <div class="row g-4 h-100">
-                    <!-- Request Card 1 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+1" alt="طلب 1">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">نظام إدارة المستشفيات</h5>
-                                <p class="card-text text-muted mb-3">نظام متكامل لإدارة المستشفيات يشمل إدارة المرضى والمواعيد والسجلات الطبية.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> أحمد محمد</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> علوم الحاسب</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-15</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-warning">قيد الانتظار</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="1">
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-request-id="1">
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+              <!-- Requests Grid -->
+<div class="row g-4 h-100">
+    {% if projects %}
+        {% for project in projects %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card project-card h-100 shadow-sm">
+                <div class="project-image position-relative">
+    {% if project.projectpictures_set.all %}
+        <img 
+            src="{{ project.projectpictures_set.all.0.image.url }}"
+            alt="{{ project.ProjectName }}"
+            class="card-img-top"
+        >
+    {% else %}
+        <img 
+            src="{% static 'images/no-image.png' %}"
+            alt="بدون صورة"
+            class="card-img-top"
+        >
+    {% endif %}
+</div>
+
+
+
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-2">{{ project.ProjectName }}</h5>
+                    <p class="card-text text-muted mb-3">
+                        {{ project.Description|default:"لا يوجد وصف" |truncatechars:120 }}
+                    </p>
+
+                    <div class="student-info mb-3">
+                        <p class="mb-1"><strong>الرافع:</strong> {{ project.Student_id.fullname }}</p>
+                        <p class="mb-1"><strong>زملاء المشروع:</strong>
+                            {% for s in project.collaborators.all %}
+                                {{ s.fullname }}{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                لا يوجد
+                            {% endfor %}
+                        </p>
+                        <p class="mb-1"><strong>التاريخ:</strong> {{ project.requested_at|date:"Y-m-d" }}</p>
                     </div>
 
-                    <!-- Request Card 2 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+2" alt="طلب 2">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">تطبيق تجارة إلكترونية</h5>
-                                <p class="card-text text-muted mb-3">تطبيق متكامل للتجارة الإلكترونية مع نظام دفع إلكتروني وإدارة مخزون.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> فاطمة عبدالله</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> نظم المعلومات</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-14</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-warning">قيد الانتظار</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="2">
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-request-id="2">
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                        {% if project.status == "pending" %}
+                            <span class="badge bg-warning">قيد الانتظار</span>
+                        {% elif project.status == "accepted" %}
+                            <span class="badge bg-success">مقبول</span>
+                        {% elif project.status == "rejected" %}
+                            <span class="badge bg-danger">مرفوض</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ project.status }}</span>
+                        {% endif %}
 
-                    <!-- Request Card 3 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+3" alt="طلب 3">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">منصة تعليمية ذكية</h5>
-                                <p class="card-text text-muted mb-3">منصة تعليمية تستخدم الذكاء الاصطناعي لتقديم محتوى تعليمي مخصص للطلاب.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> خالد سعيد</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> هندسة البرمجيات</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-13</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-warning">قيد الانتظار</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="3">
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        <div class="btn-group">
+                            <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="accept">
+                                <button type="submit" class="btn btn-success btn-sm" {% if project.status != "pending" %}disabled{% endif %}>
+                                    قبول
+                                </button>
+                            </form>
 
-                    <!-- Request Card 4 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+4" alt="طلب 4">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">نظام مراقبة ذكي</h5>
-                                <p class="card-text text-muted mb-3">نظام مراقبة باستخدام كاميرات ذكية قادرة على تحليل الحركة والتعرف على الوجوه.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> سارة علي</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> أمن المعلومات</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-12</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-success">مقبول</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="4" disabled>
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-request-id="4" disabled>
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline; margin-left:4px;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-danger btn-sm" {% if project.status != "pending" %}disabled{% endif %}>
+                                    رفض
+                                </button>
+                            </form>
 
-                    <!-- Request Card 5 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+5" alt="طلب 5">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">تطبيق إدارة المهام</h5>
-                                <p class="card-text text-muted mb-3">تطبيق لإدارة المهام الشخصية والمشاريع مع ميزات التعاون بين الفرق.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> محمد حسن</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> علوم الحاسب</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-11</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-danger">مرفوض</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="5" disabled>
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-request-id="5" disabled>
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Request Card 6 -->
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card project-card h-100 shadow-sm">
-                            <div class="project-image position-relative">
-                                <img src="https://via.placeholder.com/400x150?text=طلب+6" alt="طلب 6">
-                            </div>
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title mb-2">منصة سياحة وسفر</h5>
-                                <p class="card-text text-muted mb-3">منصة شاملة لحجوزات الفنادق والطيران وتخطيط رحلات السياحة.</p>
-                                <div class="student-info mb-3">
-                                    <p class="mb-1"><strong>الطالب:</strong> نورا عبدالرحمن</p>
-                                    <p class="mb-1"><strong>التخصص:</strong> نظم المعلومات</p>
-                                    <p class="mb-1"><strong>التاريخ:</strong> 2024-03-10</p>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
-                                    <span class="badge bg-warning">قيد الانتظار</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-success btn-sm confirm-btn" data-request-id="6">
-                                            قبول
-                                        </button>
-                                        <button class="btn btn-danger btn-sm reject-btn" data-request-id="6">
-                                            رفض
-                                        </button>
-                                        <button class="btn btn-primary btn-sm view-details-btn" data-bs-toggle="modal" data-bs-target="#">
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <a href="{% url 'projectDetails' project.id %}" class="btn btn-primary btn-sm" style="margin-left:4px;">
+                                التفاصيل
+                            </a>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
-    </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">لا توجد طلبات لعرضها.</div>
+        </div>
+    {% endif %}
+</div>
+
 
     <!-- Footer -->
     <footer class="bg-dark text-white py-4 mt-5">

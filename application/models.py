@@ -1,8 +1,7 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from datetime import datetime
+from django.utils import timezone
+# Create your models here.
 
 class University(models.Model):
     univ_name = models.CharField(max_length=50)
@@ -55,7 +54,20 @@ class Projects(models.Model):
     ProjectName = models.CharField(max_length=150)
     UniversityID = models.ForeignKey(University , on_delete=models.CASCADE)
     MajorID = models.ForeignKey(Major , on_delete= models.CASCADE)
+    
+    # الحقل القديم: صاحب المشروع الأساسي (محفوظ كما كان) — احتفظنا به لأجل التوافق
     Student_id = models.ForeignKey(Student , on_delete=models.CASCADE , blank=True , null=True)
+
+    # ======= إضافات جديدة (لتمكين اختيار زميل/مشرف وطلبات معلقة) =======
+    # collaborators: يسمح للطالب باختيار زميل مشروع (اختياري، يمكن أن يحتوي على صفر أو أكثر)
+    collaborators = models.ManyToManyField(Student, blank=True, related_name='collaborations')
+    # تعليق: هذا حقل جديد؛ لا يلغي Student_id الموجود (الذي يبقى كـ "الرافع/المالك" الافتراضي).
+
+    # supervisor: إمكانية تعيين مشرف إلى المشروع (قد يختاره الطالب عند الرفع)
+    supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True, blank=True, related_name='supervised_projects')
+    # تعليق: حقل جديد؛ إذا حُذف المشرف، نبقي المشروع (SET_NULL) بدلاً من حذفه.
+
+    # وقت/سنة المشروع والتفاصيل والملفات كما كانت
     yearOfProject = models.IntegerField()
     Description = models.TextField(blank=True , null=True)
     FullDescription = models.TextField(blank=True , null=True)
@@ -64,10 +76,22 @@ class Projects(models.Model):
     rates = models.FloatField( default=0.0 , blank=True , null=True)
     ProjectType = models.CharField( max_length=50 , blank=True , null=True)
     degree = models.FloatField(null = True , blank=True)
-    status = models.CharField(max_length=50, null=True, blank=True)
-classfication = models.CharField(max_length=50, null=True, blank=True)
+    
+    # status: حالة المشروع (pending, accepted, rejected) — أضفت قيمة افتراضية 'pending'
+    status = models.CharField(max_length=50, null=True, blank=True, default='pending')
+    # تعليق: تم إضافة default='pending' حتى تظهر المشاريع كـ "قيد الانتظار" تلقائياً عند الرفع.
 
+    # classification: أصلحت المكان والاسم داخل الكلاس (كان خارج الكلاس سابقاً)
+    classification = models.CharField(max_length=50, null=True, blank=True)
+    # تعليق: هذا نفس الحقل السابق لكن مصحح مكانه وإملاؤه (كان "classfication" خارج الكلاس).
 
+    # requested_at: وقت طلب أو رفع المشروع (مفيد لآلة "تجاهل بعد X أيام")
+    requested_at = models.DateTimeField(default=timezone.now)
+
+    # تعليق: تم إضافة هذا الحقل لتحديد زمن الطلب حتى نقدر نطبق منطق التجاهل التلقائي حسب الدرجة الزمنية.
+
+    def __str__(self):
+        return self.ProjectName
 
 class Ratings(models.Model):
     Creativity = models.IntegerField() # الإبداع

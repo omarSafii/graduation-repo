@@ -1,13 +1,14 @@
 {% load static %}
 {% include "base.html" %}
 {% block content %}
-    <link rel="stylesheet" href="{%static 'css/supervisordashboard.css'%}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
 </head>
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
                 <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
                 <span>منصة مشاريع التخرج</span>
             </a>
@@ -15,286 +16,153 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{%url 'index' %}">الرئيسية</a>
+                        <a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{%url 'BrowseProjects' %}">المشاريع</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{%url 'logout'%}">خروج</a>
-                    </li>
+
+                    {% if email == none %}
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}">تسجيل الدخول / إنشاء حساب</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link btn btn-light text-primary ms-2 dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ fullname }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                                {% if userType == 'student' %}
+                                    <li><a class="dropdown-item" href="{% url 'studentProfile' %}">إعدادات الحساب</a></li>
+                                {% elif userType == 'supervisor' %}
+                                    <!-- نربط إعدادات المشرف إلى نفس اللوحة لأن view للحساب مش موجود؛ إن أردت صفحة منفصلة نضيف view لاحقا -->
+                                    <li><a class="dropdown-item" href="{% url 'supervisorDashboard' %}">إعدادات الحساب</a></li>
+                                {% elif userType == 'admin' %}
+                                    <li><a class="dropdown-item" href="{% url 'AdminDashboard' %}">إعدادات الحساب</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">خروج</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar p-4">
-                <div class="position-sticky">
-                    <h5 class="mb-3">القائمة</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link active" href="#">
-                                <i class="bi bi-person-lines-fill me-2"></i>
-                                لوحة التحكم
-                            </a>
-                        </li>
-                       
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="{%url 'BrowseProjects' %}">
-                                <i class="bi bi-journal-text me-2"></i>
-                                مشاريع للتصحيح
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-gear me-2"></i>
-                                إعدادات الحساب
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'student_requests' %}">
-                        <i class="bi bi-people me-2"></i>
-                        طلبات الطلاب
-                        </a>
-                        </li>
-                    </ul>
-                    
-                    <hr class="my-4">
-                    
-                    <h6 class="text-muted">الإحصائيات</h6>
-                    <div class="mt-3">
-                        <p class="mb-1">المشاريع المُقيّمة: <strong>8</strong></p>
-                        <p class="mb-1">المشاريع المعلقة: <strong>3</strong></p>
-                        <p class="mb-0">متوسط التقييم: <strong>4.2/5</strong></p>
-                    </div>
-                </div>
-            </nav>
+    <!-- Supervisor Dashboard Header -->
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>لوحة المشرف</h2>
+                <p class="text-muted">مرحباً {{ fullname }} — هذه لوحة تحكم لإدارة المشاريع التي تشرف عليها.</p>
+            </div>
+        </div>
 
-            <!-- Main Content Area -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="d-flex align-items-center my-2 flex-column">
-                        <h2>لوحة تحكم المشرف</h2>
-                        <h3>مشاريع لم يتم تصليحها بعد :</h3>
+        <!-- Statistics -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card p-3">
+                    <h6>إجمالي المشاريع</h6>
+                    <h3 class="mb-0">{{ total_projects|default:0 }}</h3>
+                </div>
+            </div>
+            <!-- ضع هذا داخل بلوك الإحصائيات في Supervisor Dashboard.html -->
+<div class="card mb-3" style="max-width: 20rem;">
+  <div class="card-body text-center">
+    <h6 class="card-title mb-1">متوسط التقييم</h6>
+    <p class="h3 mb-1">{{ avg_rating }}</p>
+
+    <!-- شريط بصري يعكس المتوسط (افتراض التقييم من 0 إلى 5) -->
+    <div class="progress" style="height: 0.6rem;">
+      <div class="progress-bar" role="progressbar"
+           style="width: {% widthratio avg_rating 5 100 %}%;"
+           aria-valuenow="{{ avg_rating }}" aria-valuemin="0" aria-valuemax="5">
+      </div>
+    </div>
+    <small class="text-muted d-block mt-1">من 0 إلى 5</small>
+  </div>
+</div>
+
+            <div class="col-6 col-md-3">
+                <div class="card p-3">
+                    <h6>قيد الانتظار</h6>
+                    <h3 class="mb-0 text-warning">{{ pending_projects|default:0 }}</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3">
+                    <h6>مقبولة</h6>
+                    <h3 class="mb-0 text-success">{{ accepted_projects|default:0 }}</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card p-3">
+                    <h6>مرفوضة</h6>
+                    <h3 class="mb-0 text-danger">{{ rejected_projects|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average rating -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card p-3">
+                    <h6>متوسط التقييم</h6>
+                    <h4 class="mb-0">{{ avg_rating|default:0 }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects list (مشاريع المشرف) -->
+        <div class="row g-4">
+            {% if projects and projects.count > 0 %}
+                {% for project in projects %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="project-image position-relative">
+                            {% if project.status == 'pending' %}
+                                <span class="badge bg-warning position-absolute top-0 end-0 m-2">قيد الانتظار</span>
+                            {% elif project.status == 'accepted' %}
+                                <span class="badge bg-success position-absolute top-0 end-0 m-2">مقبول</span>
+                            {% elif project.status == 'rejected' %}
+                                <span class="badge bg-danger position-absolute top-0 end-0 m-2">مرفوض</span>
+                            {% endif %}
+
+                            {% if project.projectpictures_set.all %}
+                                <img src="{{ project.projectpictures_set.all.0.image.url }}" alt="{{ project.ProjectName }}" class="card-img-top" style="height:200px; object-fit:cover;">
+                            {% else %}
+                                <img src="https://via.placeholder.com/400x200?text=No+Image" alt="لا توجد صورة" class="card-img-top" style="height:200px; object-fit:cover;">
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ project.ProjectName }}</h5>
+                            <p class="card-text text-muted mb-2">{{ project.Description|truncatechars:100 }}</p>
+
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <a href="{% url 'ProjectEvaluationForm' project.id %}" class="btn btn-primary btn-sm">
+                                    تقييم
+                                </a>
+                                <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary btn-sm">
+                                    التفاصيل
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <form method="POST" enctype="multipart/form-data"> 
-                        {% csrf_token %}
-                        <div class="d-flex gap-2">
-                            <select class="form-select" style="width: auto;" name="majorID">
-                                <option value="0" selected>جميع التخصصات</option>
-                                {% for major in majors %}
-                                <option value="{{major.id}}">{{major.major_name}}</option>
-                                {% endfor %}
-                            </select>
-                            <br>
-                            <select class="form-select" style="width: auto;" name="yearID">
-                                <option value="0" selected>جميع السنوات</option>
-                                {% for year in years %}
-                                <option value="{{year}}">{{year}}</option>
-                                {% endfor %}
-                            </select>
-                            <br>
-                            <button type="submit" name="search" class="btn btn-primary">حفظ التقييم</button>
-                        </div>
-                    </form>
                 </div>
-                
-                <!-- Projects Grid -->
-                <div class="row g-4">
-                    <!-- Project Cards -->
-                    {% for project in projects %}
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card project-card h-100 shadow-sm">
-                                <div class="project-image position-relative">
-                                    <img src="https://via.placeholder.com/400x150?text= مشروع+{{forloop.counter}}" alt="مشروع {{forloop.counter}}">
-                                </div>
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title mb-2">{{project.ProjectName}}</h5>
-                                    <p class="card-text text-muted mb-3">{{project.Description}}</p>
-                                    <div class="d-flex justify-content-between align-items-center mt-auto">
-                                        <span class="badge bg-primary">{{project.MajorID.major_name}}</span>
-                                        <button class="btn btn-primary btn-sm evaluation-btn" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#evaluationModal"
-                                                data-project-id="{{project.id}}"
-                                                data-project-name="{{project.ProjectName}}"
-                                                data-project-major="{{project.MajorID.major_name}}"
-                                                data-student-name="{{project.Student_id.fullname}}">
-                                            تقييم
-                                        </button>
-                                    </div>
-                                    <div class="mt-2">
-                                        <small class="text-muted">
-                                            <i class="bi bi-calendar me-1"></i> {{project.UploadDate}}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">لا توجد مشاريع مُعينة لك حتى الآن.</div>
                 </div>
-                
-                <!-- Evaluation Modal - Single Modal Outside the Loop -->
-                <div class="modal fade" id="evaluationModal" tabindex="-1" aria-labelledby="evaluationModalLabel" aria-hidden="true">
-                    <form method="POST" enctype="multipart/form-data"> 
-                        {% csrf_token %}
-                        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="evaluationModalLabel">تقييم مشروع التخرج</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <h5 id="modal-project-name"></h5>
-                                    <p class="text-muted" id="modal-project-details"></p>
-                                    <div class="evaluation-form">
-                                        <h6 class="mb-3">معايير التقييم</h6>
-                                        <!-- Criterion 1 -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">الإبداع</label>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <small>الحد الأدنى</small>
-                                                <small>ممتاز</small>
-                                            </div>
-                                            <input type="range" class="form-range" min="0" name="Creativity" max="100" step="5" id="criterion1">
-                                            <input type="hidden" name="projectid" id="project-id-input" value="">
-                                            <div class="d-flex justify-content-between">
-                                                <span class="rating-stars">
-                                                    ★
-                                                </span>
-                                                <span class="rating-stars">
-                                                    ★★★★★
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Criterion 2 -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">التنفيذ</label>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <small>الحد الأدنى</small>
-                                                <small>ممتاز</small>
-                                            </div>
-                                            <input type="range" class="form-range" min="0" name="Implementation" max="100" step="5" id="criterion2">
-                                            <div class="d-flex justify-content-between">
-                                                <span class="rating-stars">
-                                                    ★
-                                                </span>
-                                                <span class="rating-stars">
-                                                    ★★★★★
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Criterion 3 -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">الوظائف</label>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <small>الحد الأدنى</small>
-                                                <small>ممتاز</small>
-                                            </div>
-                                            <input type="range" class="form-range" min="0" name="Functionality" max="100" step="5" id="criterion3">
-                                            <div class="d-flex justify-content-between">
-                                                <span class="rating-stars">
-                                                    ★
-                                                </span>
-                                                <span class="rating-stars">
-                                                    ★★★★★
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Criterion 4 -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">الواجهة</label>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <small>الحد الأدنى</small>
-                                                <small>ممتاز</small>
-                                            </div>
-                                            <input type="range" class="form-range" min="0" max="100" name="Interface" step="5" id="criterion4">
-                                            <div class="d-flex justify-content-between">
-                                                <span class="rating-stars">
-                                                    ★
-                                                </span>
-                                                <span class="rating-stars">
-                                                    ★★★★★
-                                                </span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Total Score -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">الدرجة الكلية</label>
-                                            <div class="input-group mb-2">
-                                                <input type="number" class="form-control" name="degree" placeholder="الدرجة من 100">
-                                                <span class="input-group-text">%</span>
-                                            </div>
-                                            <div class="progress" style="height: 0.5rem;">
-                                                <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Comments -->
-                                        <div class="mb-4">
-                                            <label class="form-label fw-bold">ملاحظات المشرف</label>
-                                            <textarea class="form-control" rows="4" name="notes" placeholder="اكتب ملاحظاتك حول المشروع هنا..."></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                                    <button type="submit" name="saveRating" class="btn btn-success">حفظ التقييم</button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </main>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
+    <footer class="footer mt-5">
+        <div class="container text-center py-4">
+            <p class="mb-0 text-muted">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
         </div>
     </footer>
-
-    <!-- JavaScript for Modal Functionality -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get all evaluation buttons
-            const evaluationButtons = document.querySelectorAll('.evaluation-btn');
-            
-            // Add click event to each button
-            evaluationButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Get project data from data attributes
-                    const projectId = this.getAttribute('data-project-id');
-                    const projectName = this.getAttribute('data-project-name');
-                    const projectMajor = this.getAttribute('data-project-major');
-                    const studentName = this.getAttribute('data-student-name');
-                    
-                    // Update modal content
-                    document.getElementById('modal-project-name').textContent = `${projectName} - ${projectMajor}`;
-                    document.getElementById('modal-project-details').textContent = `بواسطة: ${studentName}`;
-                    document.getElementById('project-id-input').value = projectId;
-                    
-                    // Reset form fields
-                    document.getElementById('criterion1').value = 0;
-                    document.getElementById('criterion2').value = 0;
-                    document.getElementById('criterion3').value = 0;
-                    document.getElementById('criterion4').value = 0;
-                    document.querySelector('input[name="degree"]').value = '';
-                    document.querySelector('textarea[name="notes"]').value = '';
-                });
-            });
-        });
-    </script>
 {% endblock content %}
