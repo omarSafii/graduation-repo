@@ -1,270 +1,265 @@
-{% extends "base.html" %}
-{% load static %}
-{% block content %}
-    <style>
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .navbar {
-            background-color: #0062be;
-        }
-        
-        .form-control {
-            border-radius: 0.75rem;
-        }
-        
-        .btn-custom {
-            border-radius: 0.75rem;
-            padding: 0.6rem 1.2rem;
-            font-weight: bold;
-        }
-        
-        .btn-primary {
-            background-color: #0062be;
-            border-color: #0062be;
-        }
-        
-        .btn-primary:hover {
-            background-color: #00509e;
-            border-color: #00509e;
-        }
-        
-        .project-form {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
-        }
-        
-        .form-section {
-            margin-bottom: 2rem;
-        }
-        
-        .form-section h4 {
-            margin-bottom: 1rem;
-            color: #0062be;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 0.5rem;
-        }
-        
-        .upload-box {
-            border: 2px dashed #ced4da;
-            border-radius: 0.75rem;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.3s ease;
-        }
-        
-        .upload-box:hover {
-            border-color: #0062be;
-            background-color: #f1f9ff;
-        }
-        
-        .upload-icon {
-            font-size: 3rem;
-            color: #6c757d;
-            margin-bottom: 1rem;
-        }
-        
-        .preview-images {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .preview-images img {
-            max-width: 150px;
-            max-height: 150px;
-            border-radius: 0.5rem;
-            object-fit: cover;
-            border: 2px solid #dee2e6;
-        }
-        
-        .video-preview {
-            width: 100%;
-            max-height: 300px;
-            border-radius: 0.75rem;
-            border: 2px solid #dee2e6;
-        }
-        
-        @media (max-width: 768px) {
-            .preview-images {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-    </style>
+{% extends "base.html" %} {% load static %} {% block content %}
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-                <span>منصة المشاريع الطلابية</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'studentProfile' %}">حسابي</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{% url 'UploadProject' %}">رفع مشروع</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'index' %}">الرئيسية</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<style>
+  .student-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: #0062be;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin: 4px;
+    font-size: 14px;
+  }
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="project-form">
-                    <h2 class="mb-4 text-center">رفع المشروع </h2>
-                    <!-- Basic Info Section -->
-                    <div class="form-section">
-                        <h4>المعلومات الأساسية</h4>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="studentName" class="form-label">اسم الطالب</label>
-                                <input type="text" class="form-control" id="studentName" value="{{ user }}" readonly>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="projectTitle" class="form-label">عنوان المشروع</label>
-                                <input type="text" class="form-control" name="ProjectTitle" id="projectTitle" placeholder="أدخل عنوان المشروع">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="projectPartner" class="form-label">زميل المشروع (اختياري)</label>
-                                <select class="form-select" id="projectPartner" name="collaborator">
-                                    <option selected value="">اختر زميل للمشروع</option>
-                                    {% for s in all_students %}
-                                      <option value="{{ s.id }}">{{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}</option>
-                                    {% empty %}
-                                      <option value="">لا يوجد طلاب مسجلين</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="projectSupervisor" class="form-label">المشرف</label>
-                                <select class="form-select" id="projectSupervisor" name="supervisor" required>
-                                    <option selected value="">اختر المشرف</option>
-                                    {% for sup in supervisors %}
-                                      <option value="{{ sup.id }}">{{ sup.fullname }} {% if sup.position %}- {{ sup.position }}{% endif %}</option>
-                                    {% empty %}
-                                      <option value="">لا يوجد مشرفين مسجلين</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="projectType" class="form-label">نوع المشروع</label>
-                                <select class="form-select" id="projectType" name="ProjectType">
-                                    <option selected>اختر نوع المشروع</option>
-                                    <option value="حلقة بحث">حلقة بحث</option>
-                                    <option value="تخرج">تخرج</option>
-                                    <option value="فصلي">فصلي</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="graduationYear" class="form-label">سنة انشاء المشروع/ حلقةالبحث</label>
-                                <input type="number" class="form-control" name="graduationYear" id="graduationYear" placeholder="2023">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Description Section -->
-                    <div class="form-section">
-                        <h4>وصف المشروع</h4>
-                        <div class="mb-3">
-                            <label for="abstract" class="form-label">الملخص</label>
-                            <textarea class="form-control" id="abstract" rows="3" name="Description" placeholder="اكتب ملخصاً عن المشروع..."></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fullDescription" class="form-label">الوصف الكامل</label>
-                            <textarea class="form-control" id="fullDescription" rows="5" name="fullDescription" placeholder="اكتب وصفاً تفصيلياً للمشروع..."></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Media Upload Section -->
-                    <div class="form-section">
-                        <h4>رفع الملفات والوسائط</h4>
-                        
-                        <!-- Video Upload -->
-                        <div class="mb-3">
-                            <label class="form-label">فيديو العرض التقديمي</label>
-                            <div class="upload-box" onclick="document.getElementById('videoInput').click()">
-                                <i class="bi bi-play-circle upload-icon"></i>
-                                <p>انقر لتحميل فيديو العرض التقديمي (MP4, AVI)</p>
-                                <small class="text-muted">الحجم الأقصى: 1GB</small>
-                                <input type="file" id="videoInput" name="videoFile" hidden>
-                            </div>
-                            <div id="videoPreview" class="mt-2"></div>
-                        </div>
-                        
-                        <!-- Image Upload -->
-                        <div class="mb-3">
-                            <label class="form-label">صور المشروع</label>
-                            <div class="upload-box" onclick="document.getElementById('imageInput').click()">
-                                <i class="bi bi-images upload-icon"></i>
-                                <p>انقر لتحميل صور المشروع (PNG, JPG)</p>
-                                <small class="text-muted">الحجم الأقصى: 10MB لكل صورة</small>
-                                <input type="file" id="imageInput" name="ImageFile" multiple hidden>
-                            </div>
-                            <div id="imagePreview" class="preview-images"></div>
-                        </div>
-                        
-                        <!-- PDF Upload -->
-                        <div class="mb-3">
-                            <label class="form-label">ملف PDF للمشروع</label>
-                            <div class="upload-box" onclick="document.getElementById('pdfInput').click()">
-                                <i class="bi bi-file-earmark-pdf upload-icon"></i>
-                                <p>انقر لتحميل ملف PDF للمشروع</p>
-                                <small class="text-muted">الحجم الأقصى: 20MB</small>
-                                <input type="file" id="pdfInput" name="PDFFILE" hidden>
-                            </div>
-                            <div id="pdfPreview" class="mt-2"></div>
-                        </div>
-                    </div>
-                    <!-- Evaluation Criteria -->
-                    <div class="form-section">
-                        <h4>معايير التقييم (ستظهر بعد تقييم المشرف)</h4>
-                        <div class="alert alert-info">
-                            سيتم عرض معايير التقييم هنا بعد أن يقوم المشرف بتقييم مشروعك.
-                        </div>
-                    </div>
-                    
-                    <!-- Submit Button -->
-                    <div class="text-center mt-4">
-                        <input type="submit" name="uploadTheProject" class="btn btn-primary btn-custom px-5" value="رفع المشروع">
-                    </div>
-                </div>
-                </form>
+  .student-badge span {
+    margin-left: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  body {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .navbar {
+    background-color: #0062be;
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: 0.75rem;
+  }
+
+  .btn-custom {
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.2rem;
+    font-weight: bold;
+  }
+
+  .btn-primary {
+    background-color: #0062be;
+    border-color: #0062be;
+  }
+
+  .btn-primary:hover {
+    background-color: #00509e;
+    border-color: #00509e;
+  }
+
+  .project-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+  }
+
+  .form-section h4 {
+    margin-bottom: 1rem;
+    color: #0062be;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+  }
+</style>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'index' %}">
+      منصة المشاريع الطلابية
+    </a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="project-form">
+          <h2 class="mb-4 text-center">تقديم طلب مشروع</h2>
+
+          <!-- Basic Info -->
+          <div class="form-section">
+            <h4>المعلومات الأساسية</h4>
+            <div class="row g-3">
+              <!-- القسم -->
+              <div class="col-md-6">
+                <label class="form-label">القسم</label>
+                <select name="department" class="form-select" required>
+                  <option value="">اختر القسم</option>
+                  <option value="حاسوب">حاسوب</option>
+                  <option value="اتصالات">اتصالات</option>
+                </select>
+              </div>
+
+              <!-- نوع المشروع -->
+              <div class="col-md-6">
+                <label class="form-label">نوع المشروع</label>
+                <select name="projectType" class="form-select" required>
+                  <option value="">اختر نوع المشروع</option>
+                  <option value="حلقة بحث">حلقة بحث</option>
+                  <option value="تخرج">تخرج</option>
+                  <option value="فصلي">فصلي</option>
+                </select>
+              </div>
+
+              <!-- سنة المشروع -->
+              <div class="col-md-6">
+                <label class="form-label">سنة المشروع</label>
+                <input
+                  type="number"
+                  name="projectYear"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <!-- اسم المشروع عربي -->
+              <div class="col-md-6">
+                <label class="form-label">اسم المشروع باللغة العربية</label>
+                <input
+                  type="text"
+                  name="title_ar"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <!-- اسم المشروع إنجليزي -->
+              <div class="col-md-6">
+                <label class="form-label">اسم المشروع باللغة الإنجليزية</label>
+                <input
+                  type="text"
+                  name="title_en"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">زملاء المشروع (اختياري)</label>
+
+                <!-- Select -->
+                <select class="form-select" id="studentSelect">
+                  <option value="">اختر زميل للمشروع</option>
+                  {% for s in all_students %}
+                  <option value="{{ s.id }}">
+                    {{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
+
+                <!-- Selected Students Container -->
+                <div id="selectedStudents" class="mt-2"></div>
+              </div>
+
+              <!-- الدكتور المشرف -->
+              <div class="col-md-6">
+                <label class="form-label">الدكتور المشرف</label>
+                <select name="supervisor" class="form-select" required>
+                  <option value="">اختر المشرف</option>
+                  {% for sup in supervisors %}
+                  <option value="{{ sup.id }}">{{ sup.fullname }}</option>
+                  {% endfor %}
+                </select>
+              </div>
             </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-section">
+            <h4>تفاصيل المشروع</h4>
+
+            <div class="mb-3">
+              <label class="form-label">ملخص فكرة المشروع</label>
+              <textarea
+                name="idea_summary"
+                class="form-control"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">ما سيتم إنجازه</label>
+              <textarea
+                name="what_will_be_done"
+                class="form-control"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">مراحل المشروع</label>
+              <textarea
+                name="project_stages"
+                class="form-control"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="text-center mt-4">
+            <input
+              type="submit"
+              name="submitRequest"
+              class="btn btn-primary btn-custom px-5"
+              value="إرسال الطلب"
+            />
+          </div>
         </div>
+      </form>
     </div>
+  </div>
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("studentSelect");
+    const container = document.getElementById("selectedStudents");
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-        </div>
-    </footer>
+    select.addEventListener("change", function () {
+      const selectedOption = select.options[select.selectedIndex];
+      const studentId = selectedOption.value;
+      const studentName = selectedOption.text;
 
-  <script src="{% static 'js/main.js' %}"></script>
+      if (!studentId) return;
+
+      // منع التكرار
+      if (document.getElementById("student-" + studentId)) {
+        select.value = "";
+        return;
+      }
+
+      const badge = document.createElement("div");
+      badge.className = "student-badge";
+      badge.id = "student-" + studentId;
+
+      badge.innerHTML = `
+            ${studentName}
+            <span onclick="removeStudent('${studentId}')">✖</span>
+            <input type="hidden" name="collaborator" value="${studentId}">
+        `;
+
+      container.appendChild(badge);
+      select.value = "";
+    });
+  });
+
+  function removeStudent(id) {
+    const element = document.getElementById("student-" + id);
+    if (element) {
+      element.remove();
+    }
+  }
+</script>
+
 {% endblock content %}

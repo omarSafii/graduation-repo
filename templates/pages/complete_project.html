@@ -1,0 +1,317 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+
+<style>
+  body {
+    background-color: #f8f9fa;
+  }
+
+  .navbar {
+    background-color: #0062be;
+  }
+
+  .project-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+  }
+
+  .form-section h4 {
+    margin-bottom: 1rem;
+    color: #0062be;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+  }
+
+  .readonly-box {
+    background-color: #f1f9ff;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .upload-box {
+    border: 2px dashed #ced4da;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+  .upload-box:hover {
+    border-color: #0062be;
+    background-color: #f1f9ff;
+  }
+  .upload-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+  }
+  .preview-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .preview-images img {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+  }
+  .video-preview {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 0.75rem;
+    border: 2px solid #dee2e6;
+  }
+  @media (max-width: 768px) {
+    .preview-images {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="#">صفحة إتمام بيانات المشروع</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="project-form">
+          <h2 class="text-center mb-4">إتمام بيانات المشروع</h2>
+
+          <!-- عرض البيانات القديمة -->
+          <div class="form-section">
+            <h4>البيانات الأساسية</h4>
+
+            <div class="readonly-box">
+              <strong>القسم:</strong> {{ project.department }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>اسم المشروع (عربي):</strong> {{ project.title_ar }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>اسم المشروع (إنجليزي):</strong> {{ project.title_en }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>نوع المشروع:</strong> {{ project.projectType }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>السنة:</strong> {{ project.projectYear }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>ملخص الفكرة:</strong> {{ project.idea_summary }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>ما سيتم إنجازه:</strong> {{ project.what_will_be_done }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>مراحل المشروع:</strong> {{ project.project_stages }}
+            </div>
+
+            <div class="readonly-box">
+              <strong>الطلاب:</strong>
+              {% for s in project.students.all %} {{ s.fullname }}{% if not
+              forloop.last %}, {% endfor %}
+            </div>
+
+            <div class="readonly-box">
+              <strong>المشرف:</strong> {{ project.supervisor.fullname }}
+            </div>
+          </div>
+
+          <!-- رفع الوسائط -->
+          <!-- Media Upload Section -->
+          <div class="form-section">
+            <h4>رفع الملفات والوسائط</h4>
+
+            <!-- Video Upload -->
+            <div class="mb-3">
+              <label class="form-label">فيديو العرض التقديمي</label>
+              <div
+                class="upload-box"
+                onclick="document.getElementById('videoInput').click()"
+              >
+                <i class="bi bi-play-circle upload-icon"></i>
+                <p>انقر لتحميل فيديو العرض التقديمي (MP4, AVI)</p>
+                <small class="text-muted">الحجم الأقصى: 1GB</small>
+                <input type="file" id="videoInput" name="videoFile" hidden />
+              </div>
+              <div id="videoPreview" class="mt-2"></div>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="mb-3">
+              <label class="form-label">صور المشروع</label>
+              <div
+                class="upload-box"
+                onclick="document.getElementById('imageInput').click()"
+              >
+                <i class="bi bi-images upload-icon"></i>
+                <p>انقر لتحميل صور المشروع (PNG, JPG)</p>
+                <small class="text-muted">الحجم الأقصى: 10MB لكل صورة</small>
+                <input
+                  type="file"
+                  id="imageInput"
+                  name="ImageFile"
+                  multiple
+                  hidden
+                />
+              </div>
+              <div id="imagePreview" class="preview-images"></div>
+            </div>
+
+            <!-- PDF Upload -->
+            <div class="mb-3">
+              <label class="form-label">ملف PDF للمشروع</label>
+              <div
+                class="upload-box"
+                onclick="document.getElementById('pdfInput').click()"
+              >
+                <i class="bi bi-file-earmark-pdf upload-icon"></i>
+                <p>انقر لتحميل ملف PDF للمشروع</p>
+                <small class="text-muted">الحجم الأقصى: 20MB</small>
+                <input type="file" id="pdfInput" name="PDFFILE" hidden />
+              </div>
+              <div id="pdfPreview" class="mt-2"></div>
+            </div>
+          </div>
+
+          <!-- التقييم -->
+          <!-- <div class="form-section">
+            <h4>التقييم</h4>
+
+            <div class="mb-3">
+              <label class="form-label">الدرجة</label>
+              <input
+                type="number"
+                name="rate"
+                class="form-control"
+                min="0"
+                max="100"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">ملاحظات</label>
+              <textarea
+                name="rate_notes"
+                class="form-control"
+                rows="3"
+              ></textarea>
+            </div>
+          </div> -->
+          <!-- ================= Conversation & File Updates Section ================= -->
+          <div class="form-section">
+            <h4>مراسلات وتعديلات المشروع</h4>
+
+            <!-- Upload New Update -->
+            <div class="card p-3 mb-4 shadow-sm">
+              <h6 class="mb-3">إضافة تحديث جديد</h6>
+
+              <div class="mb-3">
+                <label class="form-label">رسالة مرفقة مع الملف</label>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  placeholder="اكتب ملاحظاتك أو التعديلات المطلوبة هنا..."
+                ></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">رفع ملف (PDF أو Word فقط)</label>
+                <input
+                  type="file"
+                  class="form-control"
+                  accept=".pdf,.doc,.docx"
+                />
+                <small class="text-muted">
+                  الصيغ المسموحة: PDF, DOC, DOCX
+                </small>
+              </div>
+
+              <button type="button" class="btn btn-primary">رفع التحديث</button>
+            </div>
+
+            <!-- Conversation History -->
+            <div class="card p-3 shadow-sm">
+              <h6 class="mb-4">سجل التحديثات (من الأقدم للأحدث)</h6>
+
+              <!-- Oldest Update -->
+              <div class="border rounded p-3 mb-3 bg-light">
+                <div class="d-flex justify-content-between">
+                  <strong class="text-primary">الطالب: أحمد محمد</strong>
+                  <small class="text-muted">2025-02-01 | 10:15 AM</small>
+                </div>
+                <p class="mt-2 mb-2">
+                  قمنا بتحديث الفصل الأول وإضافة المخططات المطلوبة.
+                </p>
+                <a href="#" class="btn btn-sm btn-outline-secondary">
+                  فتح الملف (Project_V1.pdf)
+                </a>
+              </div>
+
+              <!-- Second Update -->
+              <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between">
+                  <strong class="text-success">المشرف: د. سامر علي</strong>
+                  <small class="text-muted">2025-02-03 | 04:40 PM</small>
+                </div>
+                <p class="mt-2 mb-2">
+                  يرجى تعديل قسم المنهجية وإضافة مراجع علمية أحدث.
+                </p>
+                <a href="#" class="btn btn-sm btn-outline-secondary">
+                  فتح الملف (Supervisor_Notes.docx)
+                </a>
+              </div>
+
+              <!-- Latest Update -->
+              <div class="border rounded p-3 mb-3 bg-light">
+                <div class="d-flex justify-content-between">
+                  <strong class="text-primary">الطالب: أحمد محمد</strong>
+                  <small class="text-muted">2025-02-06 | 09:20 PM</small>
+                </div>
+                <p class="mt-2 mb-2">
+                  تم تعديل المنهجية وإضافة 5 مراجع جديدة كما طلبتم.
+                </p>
+                <a href="#" class="btn btn-sm btn-outline-secondary">
+                  فتح الملف (Project_V2.pdf)
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <input
+              type="submit"
+              class="btn btn-primary px-5"
+              value="حفظ البيانات"
+            />
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/main.js' %}"></script>
+{% endblock content %}

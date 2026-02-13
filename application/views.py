@@ -860,6 +860,11 @@ def error_404(request):
 def hello_world(request):
     return render(request, 'pages/hello_world.html')
 
+def supervisor_projects(request):
+    return render(request, "pages/supervisor_projects.html")
+def complete_project(request):
+    return render(request, "pages/complete_project.html")
+
 def student_requests(request):
     # فقط للمشرفين
     if 'email' not in request.session or request.session.get('userType') != 'supervisor':

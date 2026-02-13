@@ -47,15 +47,15 @@
                 <li class="nav-item">
                     {% if userType == 'student' %}
                         <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'studentProfile' %}">
-                            {{ fullname }}
+                            مرحبا, {{ fullname }} 
                         </a>
                     {% elif userType == 'supervisor' %}
                         <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'supervisorDashboard' %}">
-                            {{ fullname }}
+                             لوحة تحكم  {{ fullname }}
                         </a>
                     {% elif userType == 'admin' %}
                         <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'AdminDashboard' %}">
-                            {{ fullname }}
+                           مرحبا,  {{ fullname }} 
                         </a>
                     {% endif %}
                 </li>
@@ -77,9 +77,9 @@
 
                 {# زر ذكي: للطالب يذهب للـ Upload، للمشرف يذهب للوحة المشرف، لغير المسجلين يذهب لصفحة التسجيل #}
                 {% if email == none %}
-                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">رفع مشروع</a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">تقديم طلب مشروع</a>
                 {% elif userType == 'student' %}
-                    <a href="{% url 'UploadProject' %}" class="btn btn-outline-light btn-lg">رفع مشروع</a>
+                    <a href="{% url 'UploadProject' %}" class="btn btn-outline-light btn-lg">تقديم طلب مشروع</a>
                 {% elif userType == 'supervisor' %}
                     <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-light btn-lg">لوحة المشرف</a>
                 {% else %}

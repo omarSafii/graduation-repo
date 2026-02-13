@@ -204,24 +204,66 @@
 
                    {# ===== زر تقييم المشروع (للمشرف فقط) ===== #}
 {% if userType == 'supervisor' %}
-    {% if project.status == 'accepted' %}
-        <a href="{% url 'ProjectEvaluationForm' project.id %}"
-           class="btn btn-primary w-100 mt-3">
-            <i class="bi bi-star-fill me-2"></i>
-            تقييم المشروع
-        </a>
 
-    {% elif project.status == 'pending' %}
-        <button class="btn btn-warning w-100 mt-3" disabled>
-            المشروع قيد انتظار الموافقة
-        </button>
+    <div class="mt-3">
 
-    {% elif project.status == 'rejected' %}
-        <div class="alert alert-danger mt-3 text-center">
-            تم رفض هذا المشروع
-        </div>
-    {% endif %}
+        {% if project.status == "pending" %}
+            <!-- Pending -->
+            <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="accept">
+                <button type="submit" class="btn btn-success w-100 mb-2">
+                    قبول المشروع
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn btn-danger w-100">
+                    رفض المشروع
+                </button>
+            </form>
+
+        {% elif project.status == "accepted" %}
+            <!-- Accepted -->
+            <div class="alert alert-success text-center">
+                المشروع مقبول
+            </div>
+
+            <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn btn-danger w-100 mb-2">
+                    إلغاء القبول
+                </button>
+            </form>
+
+            <a href="{% url 'ProjectEvaluationForm' project.id %}"
+               class="btn btn-primary w-100">
+                <i class="bi bi-star-fill me-2"></i>
+                تقييم المشروع
+            </a>
+
+        {% elif project.status == "rejected" %}
+            <!-- Rejected -->
+            <div class="alert alert-danger text-center">
+                تم رفض المشروع
+            </div>
+
+            <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="accept">
+                <button type="submit" class="btn btn-warning w-100">
+                    إعادة الموافقة
+                </button>
+            </form>
+        {% endif %}
+
+    </div>
+
 {% endif %}
+
 
 
                     <div class="d-grid gap-2 mt-4">
