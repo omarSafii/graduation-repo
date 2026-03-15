@@ -1,4 +1,7 @@
-{% extends "base.html" %} {% load static %} {% block content %}
+{% extends "base.html" %} 
+{% load static %} 
+
+{% block content %}
 
 <style>
   .student-badge {
@@ -55,6 +58,7 @@
     border-radius: 1rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
     margin-top: 2rem;
+    margin-bottom: 2rem;
   }
 
   .form-section {
@@ -80,26 +84,27 @@
 <div class="container">
   <div class="row justify-content-center">
     <div class="col-lg-10">
-      <form method="POST">
+
+      {% if success_message %}
+        <div class="alert alert-success">{{ success_message }}</div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'UploadProject' %}" enctype="multipart/form-data">        
         {% csrf_token %}
         <div class="project-form">
           <h2 class="mb-4 text-center">تقديم طلب مشروع</h2>
 
-          <!-- Basic Info -->
           <div class="form-section">
-            <h4>المعلومات الأساسية</h4>
-            <div class="row g-3">
-              <!-- القسم -->
-              <div class="col-md-6">
+            <div class="row g-3"> <div class="col-md-6">
                 <label class="form-label">القسم</label>
                 <select name="department" class="form-select" required>
                   <option value="">اختر القسم</option>
-                  <option value="حاسوب">حاسوب</option>
-                  <option value="اتصالات">اتصالات</option>
+                  {% for major in majors %}
+                    <option value="{{ major.id }}">{{ major.major_name }}</option>
+                  {% endfor %}
                 </select>
               </div>
 
-              <!-- نوع المشروع -->
               <div class="col-md-6">
                 <label class="form-label">نوع المشروع</label>
                 <select name="projectType" class="form-select" required>
@@ -110,117 +115,80 @@
                 </select>
               </div>
 
-              <!-- سنة المشروع -->
               <div class="col-md-6">
                 <label class="form-label">سنة المشروع</label>
-                <input
-                  type="number"
-                  name="projectYear"
-                  class="form-control"
-                  required
-                />
+                <input type="number" name="projectYear" class="form-control" required />
               </div>
 
-              <!-- اسم المشروع عربي -->
               <div class="col-md-6">
                 <label class="form-label">اسم المشروع باللغة العربية</label>
-                <input
-                  type="text"
-                  name="title_ar"
-                  class="form-control"
-                  required
-                />
+                <input type="text" name="title_ar" class="form-control" required />
               </div>
 
-              <!-- اسم المشروع إنجليزي -->
               <div class="col-md-6">
                 <label class="form-label">اسم المشروع باللغة الإنجليزية</label>
-                <input
-                  type="text"
-                  name="title_en"
-                  class="form-control"
-                  required
-                />
+                <input type="text" name="title_en" class="form-control" required />
               </div>
 
               <div class="col-md-6">
                 <label class="form-label">زملاء المشروع (اختياري)</label>
-
-                <!-- Select -->
                 <select class="form-select" id="studentSelect">
                   <option value="">اختر زميل للمشروع</option>
                   {% for s in all_students %}
-                  <option value="{{ s.id }}">
-                    {{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}
-                  </option>
+                    <option value="{{ s.id }}">
+                      {{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}
+                    </option>
                   {% endfor %}
                 </select>
-
-                <!-- Selected Students Container -->
                 <div id="selectedStudents" class="mt-2"></div>
               </div>
 
-              <!-- الدكتور المشرف -->
               <div class="col-md-6">
                 <label class="form-label">الدكتور المشرف</label>
                 <select name="supervisor" class="form-select" required>
                   <option value="">اختر المشرف</option>
                   {% for sup in supervisors %}
-                  <option value="{{ sup.id }}">{{ sup.fullname }}</option>
+                    <option value="{{ sup.id }}">{{ sup.fullname }}</option>
                   {% endfor %}
                 </select>
               </div>
-            </div>
-          </div>
 
-          <!-- Description -->
+            </div> </div>
+
           <div class="form-section">
             <h4>تفاصيل المشروع</h4>
 
             <div class="mb-3">
               <label class="form-label">ملخص فكرة المشروع</label>
-              <textarea
-                name="idea_summary"
-                class="form-control"
-                rows="3"
-                required
-              ></textarea>
+              <textarea name="idea_summary" class="form-control" rows="3" required></textarea>
             </div>
 
             <div class="mb-3">
               <label class="form-label">ما سيتم إنجازه</label>
-              <textarea
-                name="what_will_be_done"
-                class="form-control"
-                rows="3"
-                required
-              ></textarea>
+              <textarea name="what_will_be_done" class="form-control" rows="3" required></textarea>
             </div>
 
             <div class="mb-3">
               <label class="form-label">مراحل المشروع</label>
-              <textarea
-                name="project_stages"
-                class="form-control"
-                rows="3"
-                required
-              ></textarea>
+              <textarea name="project_stages" class="form-control" rows="3" required></textarea>
             </div>
           </div>
 
-          <div class="text-center mt-4">
-            <input
-              type="submit"
-              name="submitRequest"
-              class="btn btn-primary btn-custom px-5"
-              value="إرسال الطلب"
-            />
-          </div>
+
+            <div class="text-center mt-4">
+    <form method="post" action="{% url 'index' %}">
+        {% csrf_token %}
+        <input type="submit" name="submitRequest" class="btn btn-primary btn-custom px-5" value="إرسال الطلب" />
+    </form>
+</div>
+
         </div>
       </form>
+
     </div>
   </div>
 </div>
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const select = document.getElementById("studentSelect");

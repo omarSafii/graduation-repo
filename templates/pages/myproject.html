@@ -108,20 +108,26 @@
 
 <div class="row g-4">
 
-{% if projects != none %}
+{% if projects %}
 {% for project in projects %}
 <div class="col-md-6 col-lg-4">
     <div class="card project-card h-100 shadow-sm">
 
         <div class="project-image position-relative">
-            <img src="https://via.placeholder.com/400x150?text=مشروع" alt="مشروع {{forloop.counter}}">
+            {% with first_pic=project.projectpictures_set.first %}
+                {% if first_pic %}
+                    <img src="{{ first_pic.image.url }}" alt="مشروع {{project.ProjectName}}" style="width:100%; height:150px; object-fit:cover;">
+                {% else %}
+                    <img src="https://via.placeholder.com/400x150?text={{project.ProjectName|urlencode}}" alt="مشروع {{project.ProjectName}}">
+                {% endif %}
+            {% endwith %}
 
-            {% if project.status == 'published' %}
+            {% if project.status == 'finished' %}
                 <span class="status-badge status-published">منشور</span>
+            {% elif project.status == 'accepted' %}
+                <span class="status-badge status-inprogress">قيد التنفيذ</span>
             {% elif project.status == 'pending' %}
                 <span class="status-badge status-pending">معلق</span>
-            {% elif project.status == 'inprogress' %}
-                <span class="status-badge status-inprogress">قيد التنفيذ</span>
             {% else %}
                 <span class="status-badge status-pending">معلق</span>
             {% endif %}
@@ -129,10 +135,16 @@
 
         <div class="card-body d-flex flex-column">
             <h5 class="card-title mb-2">{{project.ProjectName}}</h5>
-            <p class="card-text text-muted mb-3">{{project.Description}}</p>
+            <p class="card-text text-muted mb-3">{{project.Description|truncatechars:100}}</p>
 
             <div class="d-flex justify-content-between align-items-center mt-auto">
                 <span class="badge bg-primary">{{project.MajorID.major_name}}</span>
+                
+                {% if project.status == 'accepted' %}
+                <a href="{% url 'complete_project' project.id %}" class="btn btn-sm btn-info text-white">
+                    إكمال التقدم
+                </a>
+                {% else %}
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         إجراءات
@@ -140,65 +152,28 @@
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{%url 'projectDetails' project.id %}">عرض</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="{{project.id}}">حذف</a></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'MyProject' project.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟')">حذف</a></li>
                     </ul>
                 </div>
+                {% endif %}
             </div>
 
             <div class="mt-2">
                 <small class="text-muted">
-                    رفع في: {{project.UploadDate}}
+                    رفع في: {{project.UploadDate|date:"Y-m-d"}}
                 </small>
             </div>
         </div>
     </div>
 </div>
 {% endfor %}
-{% endif %}
-
-<!-- 🔵 Static InProgress Box -->
-<div class="col-md-6 col-lg-4">
-    <div class="card project-card h-100 shadow-sm">
-
-        <div class="project-image position-relative">
-            <img src="https://via.placeholder.com/400x150?text=In+Progress" alt="مشروع قيد التنفيذ">
-            <span class="status-badge status-inprogress">قيد التنفيذ</span>
-        </div>
-
-        <div class="card-body d-flex flex-column">
-
-            <!-- Project Name -->
-            <h5 class="card-title mb-2">نظام إدارة مشاريع التخرج</h5>
-
-            <!-- Description -->
-            <p class="card-text text-muted mb-3">
-                مشروع يهدف إلى تنظيم وتقييم مشاريع التخرج إلكترونياً 
-                مع إمكانية المتابعة والتحديث المستمر.
-            </p>
-
-            <!-- Section / Major -->
-            <div class="d-flex justify-content-between align-items-center mt-auto">
-                <span class="badge bg-primary">هندسة الحاسوب</span>
-
-                <!-- Action Button -->
-                <a href="{% url 'complete_project' %}" 
-                   class="btn btn-sm btn-info text-white">
-                    إكمال التقدم
-                </a>
-            </div>
-
-            <!-- Upload Date -->
-            <div class="mt-2">
-                <small class="text-muted">
-                    <i class="bi bi-calendar me-1"></i>
-                    رفع في: 2025-02-13
-                </small>
-            </div>
-
-        </div>
+{% else %}
+<div class="col-12">
+    <div class="alert alert-info text-center">
+        لا توجد مشاريع حالياً. قم برفع مشروع جديد!
     </div>
 </div>
-
+{% endif %}
 
 <!-- Add New Project Box -->
 <div class="col-md-6 col-lg-4">
@@ -214,7 +189,7 @@
 
 </div>
 
-<!-- ================== Rating Section (UNCHANGED) ================== -->
+<!-- ================== Rating Section ================== -->
 <div class="mt-5">
     <h3 class="mb-4">حالة التقييم</h3>
     <div class="row g-4">
@@ -223,7 +198,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <h5>قيد الانتظار</h5>
-                    <h2>{{notRating}}</h2>
+                    <h2>{{notRating|default:"0"}}</h2>
                     <p>مشاريع بانتظار التقييم</p>
                 </div>
             </div>
@@ -233,7 +208,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <h5>تم التقييم</h5>
-                    <h2>{{ratingProj}}</h2>
+                    <h2>{{ratingProj|default:"0"}}</h2>
                     <p>مشاريع تم تقييمها</p>
                 </div>
             </div>
@@ -243,7 +218,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <h5>متوسط التقييم</h5>
-                    <h2>{{ava}}</h2>
+                    <h2>{{ava|default:"0"|floatformat:1}}</h2>
                     <p>من أصل 5</p>
                 </div>
             </div>
@@ -253,8 +228,8 @@
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <h5>أعلى تقييم</h5>
-                    <h2>{{maxRate.rates}}</h2>
-                    <p>{{maxRate.ProjectName}}</p>
+                    <h2>{% if maxRate %}{{maxRate.rates}}{% else %}0{% endif %}</h2>
+                    <p>{% if maxRate %}{{maxRate.ProjectName}}{% else %}---{% endif %}</p>
                 </div>
             </div>
         </div>

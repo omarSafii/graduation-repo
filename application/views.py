@@ -5,7 +5,6 @@ from django.db.models import Sum, Q, Avg
 from django.utils import timezone
 from datetime import timedelta, datetime
 from itertools import chain
-
 from operator import attrgetter
 
 @csrf_protect
@@ -139,41 +138,115 @@ def login(request):
     return render(request, 'pages/login.html', {'unvs': universities, 'majors': majors})
 
 
+
+
+from django.contrib import messages  # استيراد الرسائل
+
+
+
+@csrf_protect
+def supervisor_finish(request, project_id):
+    # فقط للمشرف المتصل
+    if 'email' not in request.session or request.session.get('userType') != 'supervisor':
+        messages.error(request, "❌ ليس لديك صلاحية للوصول إلى هذه الصفحة.")
+        return redirect('login')
+
+    try:
+        supervisor = Supervisor.objects.get(email=request.session['email'])
+    except Supervisor.DoesNotExist:
+        messages.error(request, "❌ لم يتم العثور على حساب المشرف.")
+        return redirect('login')
+
+    try:
+        project = Projects.objects.get(id=project_id, supervisor=supervisor)
+    except Projects.DoesNotExist:
+        messages.error(request, "❌ المشروع غير موجود أو أنت لست المشرف عليه.")
+        return redirect('supervisor_projects')
+
+    if request.method == 'POST':
+        # اضغط زر الانتهاء => نعلَن المشروع منشور ليظهر في BrowseProjects
+        project.is_published = True
+        project.status = 'accepted'  # تأكد من الحالة
+        project.save()
+
+        # رسالة نجاح خضراء
+        messages.success(request, f"✅ تم إنهاء المشروع «{project.ProjectName}» ونشره بنجاح في صفحة التصفح.")
+
+        return redirect('supervisor_projects')
+
+    # إذا وصل بالـ GET
+    messages.warning(request, "⚠️ طلب غير صالح.")
+    return redirect('supervisor_projects')
+
+
+
+
+
+
+
 @csrf_protect
 def index(request):
-    # إصلاح شرط التحقق من الجلسة
-    if 'email' not in request.session or request.session.get('email') is None:
+
+    # تجهيز الجلسة إذا لم تكن موجودة
+    if 'email' not in request.session:
         request.session['fullname'] = None
         request.session['userType'] = None
         request.session['email'] = None
-    
+
     universities = University.objects.all()
     majors = Major.objects.all()
-    years = [year for year in range(datetime.now().year, datetime.now().year - 6, -1)]
-    
-    data = {
-        'majors': majors, 
-        'univs': universities,
-        'fullname': request.session.get('fullname'), 
-        'userType': request.session.get('userType'), 
-        'email': request.session.get('email'),
-        'years': years,
-    }
-    
+
+    years = [year for year in range(datetime.now().year, datetime.now().year - 11, -1)]  # آخر 10 سنوات
+
+    # المشاريع الافتراضية (آخر المشاريع) - المنشورة والمقبولة فقط
+    projects = Projects.objects.filter(
+        status='accepted',
+        is_published=True
+    ).order_by('-id')
+
+    # إذا كان هناك فلترة (POST)
     if request.method == 'POST':
-        try:
-            majorID = int(request.POST.get('majorID'))
-            universityID = int(request.POST.get('universityID'))
-            yearID = int(request.POST.get('yearID'))
-            projects = Projects.objects.filter(MajorID=majorID, yearOfProject=yearID, UniversityID=universityID)
-            data.update({'projects': projects})
-        except:
-            pass
-    else:
-        projects = Projects.objects.all().order_by('id')
-        data.update({'projects': projects})
-        
+        majorID = request.POST.get('majorID')
+        projectType = request.POST.get('projectType')  # نوع المشروع
+        yearID = request.POST.get('yearID')  # السنة
+
+        # نبدأ بجميع المشاريع المنشورة والمقبولة
+        filtered_projects = Projects.objects.filter(
+            status='accepted',
+            is_published=True
+        )
+
+        # تطبيق فلترة التخصص إذا تم اختياره
+        if majorID and majorID.strip():
+            filtered_projects = filtered_projects.filter(MajorID=majorID)
+
+        # تطبيق فلترة نوع المشروع إذا تم اختياره
+        if projectType and projectType.strip():
+            filtered_projects = filtered_projects.filter(ProjectType=projectType)
+
+        # تطبيق فلترة السنة إذا تم اختيارها
+        if yearID and yearID.strip():
+            filtered_projects = filtered_projects.filter(yearOfProject=yearID)
+
+        # ترتيب النتائج
+        projects = filtered_projects.order_by('-id')
+
+    data = {
+        'majors': majors,
+        'univs': universities,
+        'years': years,
+        'projects': projects,
+        'fullname': request.session.get('fullname'),
+        'userType': request.session.get('userType'),
+        'email': request.session.get('email'),
+        'project_types': ['تخرج', 'فصلي', 'حلقة بحث'],  # لإرسالها للقالب
+    }
+
     return render(request, 'pages/index.html', data)
+
+
+
+
 
 @csrf_protect
 def projectDetails(request, id):
@@ -215,124 +288,192 @@ def projectDetails(request, id):
     
     return render(request, 'pages/Project Details.html', data)
 
-
-
 @csrf_protect
 def UploadProject(request):
-    if 'email' in request.session:
-        if request.session['email'] is not None:
-            if request.session['userType'] == 'student':
-                user = request.session['email']
-                student_obj = Student.objects.get(email=user)
+    # لازم المستخدم مسجل وطالب
+    if 'email' not in request.session or request.session.get('userType') != 'student':
+        return redirect('login')
 
-                if request.method == "POST":
-                    if request.POST.get('uploadTheProject'):
-                        ProjectTitle = request.POST.get('ProjectTitle')
-                        ProjectType = request.POST.get('ProjectType')
-                        graduationYear = request.POST.get('graduationYear')
-                        Description = request.POST.get('Description')
-                        fullDescription = request.POST.get('fullDescription')
-                        videoFile = request.FILES.get('videoFile')
-                        ImageFile = request.FILES.getlist('ImageFile')
-                        pdfFile = request.FILES.get('PDFFILE')
+    student_obj = Student.objects.get(email=request.session['email'])
 
-                        unv = student_obj.university
-                        mjr = student_obj.department
-                        std = student_obj
+    if request.method == "POST":
+        # ---------------------------
+        # 1) ارسال طلب المشروع (الفورم الجديد) -> name="submitRequest"
+        # ---------------------------
+        if request.POST.get('submitRequest'):
+            major_id = request.POST.get('department')
+            project_type = request.POST.get('projectType')
+            project_year = request.POST.get('projectYear')
+            title_ar = request.POST.get('title_ar')
+            title_en = request.POST.get('title_en')
+            supervisor_id = request.POST.get('supervisor')
+            idea = request.POST.get('idea_summary')
+            what = request.POST.get('what_will_be_done')
+            stages = request.POST.get('project_stages')
 
-                        # حقول جديدة من الفورم (اختياريان)
-                        selected_supervisor_id = request.POST.get('supervisor')      # قد تكون '' أو None
-                        selected_collab_id = request.POST.get('collaborator')       # قد تكون '' أو None
+            # جلب Major إن وُجد
+            major = None
+            try:
+                if major_id:
+                    major = Major.objects.get(id=int(major_id))
+            except Exception:
+                major = None
 
-                        # تحقق من عدم تكرار نفس المشروع بالكامل
-                        if not Projects.objects.filter(
-                            ProjectName=ProjectTitle,
-                            UniversityID=unv,
-                            MajorID=mjr,
-                            Student_id=std,
-                            yearOfProject=graduationYear,
-                            Description=Description,
-                            FullDescription=fullDescription,
-                            ProjectType=ProjectType
-                        ).exists():
-                            # أنشئ المشروع مع الحالة الافتراضية 'pending'
-                            project = Projects.objects.create(
-                                ProjectName=ProjectTitle,
-                                UniversityID=unv,
-                                MajorID=mjr,
-                                Student_id=std,
-                                yearOfProject=graduationYear,
-                                Description=Description,
-                                FullDescription=fullDescription,
-                                pdf_file=pdfFile,
-                                ProjectType=ProjectType,
-                                status='pending'
-                            )
+            # جلب Supervisor إن وُجد
+            sup = None
+            try:
+                if supervisor_id:
+                    sup = Supervisor.objects.get(id=int(supervisor_id))
+            except Exception:
+                sup = None
 
-                            # أضف الرافع كواحد من الطلاب المرتبطين (collaborators قائمة)
-                            try:
-                                project.collaborators.add(std)
-                            except Exception:
-                                pass
+            # أنشئ المشروع كسجل pending
+            project = Projects.objects.create(
+                ProjectName = title_ar or title_en or "مشروع بدون عنوان",
+                UniversityID = student_obj.university,
+                MajorID = major if major else (Major.objects.first() if Major.objects.exists() else None),
+                Student_id = student_obj,
+                yearOfProject = int(project_year) if project_year else timezone.now().year,
+                Description = idea or "",
+                FullDescription = (what or "") + "\n\nMILESTONES:\n" + (stages or ""),
+                ProjectType = project_type or "",
+                status = 'pending',
+                requested_at = timezone.now(),
+                supervisor = sup
+            )
 
-                            # إذا اختار الطالب زميل مشروع
-                            if selected_collab_id:
-                                try:
-                                    collab = Student.objects.get(id=int(selected_collab_id))
-                                    project.collaborators.add(collab)
-                                except Exception:
-                                    pass
+            # اضف collaborators من hidden inputs (name="collaborator")
+            collab_ids = request.POST.getlist('collaborator')
+            for cid in collab_ids:
+                try:
+                    s = Student.objects.get(id=int(cid))
+                    project.collaborators.add(s)
+                except Exception:
+                    pass
 
-                            # إذا اختار الطالب مشرف
-                            if selected_supervisor_id:
-                                try:
-                                    sup = Supervisor.objects.get(id=int(selected_supervisor_id))
-                                    project.supervisor = sup
-                                    project.save()
-                                except Exception:
-                                    pass
+            project.save()
 
-                            # حفظ الوسائط كما في السابق
-                            ProjectMedia(ProjectID=project, vedio=videoFile).save()
-                            for pic in ImageFile:
-                                ProjectPictures(ProjectID=project, image=pic).save()
+            # بعد ارسال الطلب - نوجّه الطالب لمشاريعه
+            return redirect('MyProject')
 
-                # عند الـ GET: مرّر القوائم اللازمة للقالب (supervisors و all_students)
-                supervisors = Supervisor.objects.all()
-                all_students = Student.objects.exclude(email=user)  # استبعد الرافع نفسه إن أردت
-                return render(request, 'pages/Upload -project.html', {
-                    'user': student_obj.fullname,
-                    'supervisors': supervisors,
-                    'all_students': all_students
-                })
-            else:
-                return redirect('/error/')
-        else:
-            return redirect('/error/')
-    else:
-        return redirect('/login/')
+        # ---------------------------
+        # 2) رفع ملفات المشروع (الكود القديم) -> name="uploadTheProject"
+        # ---------------------------
+        elif request.POST.get('uploadTheProject'):
+            ProjectTitle = request.POST.get('ProjectTitle')
+            ProjectType = request.POST.get('ProjectType')
+            graduationYear = request.POST.get('graduationYear')
+            Description = request.POST.get('Description')
+            fullDescription = request.POST.get('fullDescription')
+            videoFile = request.FILES.get('videoFile')
+            ImageFile = request.FILES.getlist('ImageFile')
+            pdfFile = request.FILES.get('PDFFILE')
 
+            unv = student_obj.university
+            mjr = student_obj.department
+            std = student_obj
 
+            if not Projects.objects.filter(
+                ProjectName=ProjectTitle,
+                UniversityID=unv,
+                MajorID=mjr,
+                Student_id=std,
+                yearOfProject=graduationYear,
+                Description=Description,
+                FullDescription=fullDescription,
+                ProjectType=ProjectType
+            ).exists():
+                project = Projects.objects.create(
+                    ProjectName=ProjectTitle,
+                    UniversityID=unv,
+                    MajorID=mjr,
+                    Student_id=std,
+                    yearOfProject=graduationYear,
+                    Description=Description,
+                    FullDescription=fullDescription,
+                    pdf_file=pdfFile,
+                    ProjectType=ProjectType,
+                    status='pending'
+                )
 
+                try:
+                    project.collaborators.add(std)
+                except Exception:
+                    pass
 
+                selected_collab_id = request.POST.get('collaborator')
+                selected_supervisor_id = request.POST.get('supervisor')
 
+                if selected_collab_id:
+                    try:
+                        collab = Student.objects.get(id=int(selected_collab_id))
+                        project.collaborators.add(collab)
+                    except Exception:
+                        pass
 
+                if selected_supervisor_id:
+                    try:
+                        sup = Supervisor.objects.get(id=int(selected_supervisor_id))
+                        project.supervisor = sup
+                        project.save()
+                    except Exception:
+                        pass
 
+                if videoFile:
+                    ProjectMedia(ProjectID=project, vedio=videoFile).save()
+                for pic in ImageFile:
+                    ProjectPictures(ProjectID=project, image=pic).save()
 
+            return redirect('MyProject')
 
-
-
-
+    # GET: عرض الفورم
+    supervisors = Supervisor.objects.all()
+    all_students = Student.objects.exclude(email=student_obj.email)
+    majors = Major.objects.all()
+    return render(request, 'pages/Upload -project.html', {
+        'user': student_obj.fullname,
+        'supervisors': supervisors,
+        'all_students': all_students,
+        'majors': majors
+    })
 
 
 
 @csrf_protect
 def supervisor_requests(request):
-    return redirect('/student-requests/')
+    # تأكد إن الجلسة لمشرف
+    if 'email' not in request.session or request.session.get('userType') != 'supervisor':
+        return redirect('login')
 
+    # جلب كائن المشرف (آمن)
+    try:
+        supervisor = Supervisor.objects.get(email=request.session['email'])
+    except Supervisor.DoesNotExist:
+        return redirect('login')
 
+    # إذا تحب تغيير مدة التجاهل غيّر القيمة هنا (أيام)
+    IGNORE_DAYS = 7
+    cutoff = timezone.now() - timedelta(days=IGNORE_DAYS)
 
+    # حوّل الطلبات القديمة من pending إلى rejected (ميزة التجاهل التلقائي)
+    Projects.objects.filter(supervisor=supervisor, status='pending', requested_at__lt=cutoff).update(status='rejected')
 
+    # جلب جميع المشاريع المتعلقة بالمشرف (عرض شامل: pending, accepted, rejected)
+    projects = Projects.objects.filter(supervisor=supervisor).order_by('-requested_at')
+
+    # إحصائيات حسب الحالة (مفيدة للـ sidebar)
+    pending_count = Projects.objects.filter(supervisor=supervisor, status='pending').count()
+    accepted_count = Projects.objects.filter(supervisor=supervisor, status='accepted').count()
+    rejected_count = Projects.objects.filter(supervisor=supervisor, status='rejected').count()
+
+    # مرر كل شيء للقالب student_requests.html
+    return render(request, 'pages/student_requests.html', {
+        'projects': projects,
+        'pending_projects_count': pending_count,
+        'accepted_projects_count': accepted_count,
+        'rejected_projects_count': rejected_count,
+        'supervisor': supervisor
+    })
 
 
 
@@ -356,75 +497,97 @@ def supervisor_decide(request, project_id):
                 project.save()
         return redirect('supervisor_requests')
     return redirect('/login/')
-
-
-
-
-
-
-
-
-
-
-
-
 @csrf_protect
-def BrowseProjects(request, type=None):    
-    if 'email' in request.session:
-        if request.session['email'] is not None:
-            universities = University.objects.all()
-            majors = Major.objects.all()
-            years = [year for year in range(datetime.now().year, datetime.now().year - 6, -1)]
-            
-            data = {
-                'univs': universities, 
-                'majors': majors,
-                'years': years,
-                'email': request.session['email'],
-                'fullname': request.session['fullname'],
-                'userType': request.session['userType'],
-            }
-            
-            if request.method == 'POST':
-                if request.POST.get('filterSearch') is not None:
-                    try:
-                        major = request.POST.get('major')
-                        university = request.POST.get('university')
-                        year = request.POST.get('year')
-                        
-                        if type is None:
-                            projects = Projects.objects.filter(MajorID=Major.objects.get(id=major), yearOfProject=year, UniversityID=University.objects.get(id=university))
-                            data['projects'] = projects
-                        elif type == 'new': 
-                            projects = Projects.objects.filter(MajorID=Major.objects.get(id=major), yearOfProject=year, UniversityID=University.objects.get(id=university)).order_by('UploadDate')
-                            data['projects'] = projects
-                        elif type == 'old': 
-                            projects = Projects.objects.filter(MajorID=Major.objects.get(id=major), yearOfProject=year, UniversityID=University.objects.get(id=university)).order_by('-UploadDate')
-                            data['projects'] = projects
-                        elif type == 'rating': 
-                            projects = Projects.objects.filter(MajorID=Major.objects.get(id=major), yearOfProject=year, UniversityID=University.objects.get(id=university)).order_by('rates')
-                            data['projects'] = projects
-                    except:
-                        pass
-            else:
-                if type is None:
-                    projects = Projects.objects.all()
-                    data['projects'] = projects
-                elif type == 'new': 
-                    projects = Projects.objects.all().order_by('UploadDate')
-                    data['projects'] = projects
-                elif type == 'old': 
-                    projects = Projects.objects.all().order_by('-UploadDate')
-                    data['projects'] = projects
-                elif type == 'rating': 
-                    projects = Projects.objects.all().order_by('rates')
-                    data['projects'] = projects
-                    
-            return render(request, 'pages/Browse Projects.html', data)
-        else:
-            return redirect('/error/')
-    else:
+def BrowseProjects(request, type=None):
+    # صلاحية الجلسة
+    if 'email' not in request.session or request.session.get('email') is None:
         return redirect('/login/')
+
+    universities = University.objects.all()
+    majors = Major.objects.all()
+    years = [year for year in range(datetime.now().year, datetime.now().year - 6, -1)]
+
+    # الأساس: مشاريع مقبولة ومنشورة فقط
+    visible_projects = Projects.objects.filter(status='accepted', is_published=True)
+    projects_qs = visible_projects
+
+    # ----- دعم فلترة GET -----
+    major_get = request.GET.get('major')
+    university_get = request.GET.get('university')
+    year_get = request.GET.get('year')
+    sort_get = request.GET.get('sort')
+    project_type_get = request.GET.get('project_type')
+
+    try:
+        if major_get:
+            projects_qs = projects_qs.filter(MajorID__id=int(major_get))
+    except Exception:
+        pass
+
+    try:
+        if university_get:
+            projects_qs = projects_qs.filter(UniversityID__id=int(university_get))
+    except Exception:
+        pass
+
+    try:
+        if year_get:
+            projects_qs = projects_qs.filter(yearOfProject=int(year_get))
+    except Exception:
+        pass
+
+    # فلترة حسب نوع المشروع
+    if project_type_get:
+        projects_qs = projects_qs.filter(ProjectType=project_type_get)
+
+    # ========== إضافة متوسط التقييمات لكل مشروع ==========
+    # هذا الجزء مهم جداً لإظهار النجوم في الصفحة
+    projects_list = []
+    for project in projects_qs:
+        ratings = Ratings.objects.filter(ProjectID=project)
+        if ratings.exists():
+            total_avg = 0
+            for rating in ratings:
+                # حساب متوسط المعايير الأربعة لكل تقييم
+                rating_avg = (rating.Creativity + rating.Implementation + 
+                             rating.Functionality + rating.Interface) / 4
+                total_avg += rating_avg
+            # متوسط جميع التقييمات (من 0 إلى 100) ثم تحويله إلى 5 نجوم
+            project.avg_rating = (total_avg / ratings.count()) / 20
+            project.avg_percent = total_avg / ratings.count()  # النسبة المئوية
+        else:
+            project.avg_rating = 0
+            project.avg_percent = 0
+        projects_list.append(project)
+
+    # ترتيب حسب sort
+    sort = sort_get or type
+    if sort == 'new':
+        projects_list = sorted(projects_list, key=lambda x: x.UploadDate, reverse=True)
+    elif sort == 'old':
+        projects_list = sorted(projects_list, key=lambda x: x.UploadDate)
+    elif sort == 'rating':
+        projects_list = sorted(projects_list, key=lambda x: x.avg_rating, reverse=True)
+
+    # تجميع البيانات للقالب
+    data = {
+        'univs': universities,
+        'majors': majors,
+        'years': years,
+        'email': request.session.get('email'),
+        'fullname': request.session.get('fullname'),
+        'userType': request.session.get('userType'),
+        'projects': projects_list,  # الآن تحتوي على avg_rating و avg_percent
+        'current_filters': {
+            'major': major_get or '',
+            'university': university_get or '',
+            'year': year_get or '',
+            'sort': sort or '',
+            'project_type': project_type_get or '',
+        }
+    }
+
+    return render(request, 'pages/Browse Projects.html', data)
 
 def MyProject(request, id=None):
     if 'email' in request.session:
@@ -727,34 +890,40 @@ def supervisorDashboard(request):
 
 @csrf_protect
 def ProjectEvaluationForm(request, id):
-    # تأكد أن المستخدم مشرف ومجلس الجلسة صحيح
+    # ========== التحقق من صلاحية المشرف ==========
     if 'email' not in request.session or request.session.get('userType') != 'supervisor':
         return redirect('/login/')
 
+    # ========== جلب بيانات المشروع والمشرف ==========
     project = get_object_or_404(Projects, id=id)
     supervisor = Supervisor.objects.get(email=request.session['email'])
 
-    # بيانات موجودة للعرض
+    # ========== جلب الوسائط (فيديو، صور) ==========
     videos = ProjectMedia.objects.filter(ProjectID=project)
     pics = ProjectPictures.objects.filter(ProjectID=project)
 
+    # ========== جميع التقييمات السابقة لهذا المشرف وهذا المشروع (مرتبة تنازلياً) ==========
+    all_ratings = Ratings.objects.filter(ProjectID=project, SupervisorID=supervisor).order_by('-id')
+    
+    # آخر تقييم (لاستخدامه في تعبئة النموذج تلقائياً)
+    last_rating = all_ratings.first()
+
+    # ========== معالجة طلب POST (حفظ التقييم الجديد) ==========
     if request.method == 'POST':
-        # جمع قيم المعايير
+        # --- استلام درجات المعايير ---
         Creativity = request.POST.get('Creativity') or 0
         Implementation = request.POST.get('Implementation') or 0
         Functionality = request.POST.get('Functionality') or 0
         Interface = request.POST.get('Interface') or 0
 
-        # ملاحظات كل معيار (أضفنا الأسماء في القالب)
+        # --- استلام ملاحظات كل معيار ---
         note_creativity = request.POST.get('note_creativity', '').strip()
         note_implementation = request.POST.get('note_implementation', '').strip()
         note_functionality = request.POST.get('note_functionality', '').strip()
         note_interface = request.POST.get('note_interface', '').strip()
+        general_notes = request.POST.get('notes', '').strip()  # ملاحظات عامة
 
-        # الملاحظات العامة
-        general_notes = request.POST.get('notes', '').strip()
-
-        # دمج الملاحظات بشكل منسق ليشوفها الطالب لاحقًا
+        # --- دمج جميع الملاحظات في نص واحد منسق ---
         combined_notes = []
         if note_creativity:
             combined_notes.append(f"الإبداع: {note_creativity}")
@@ -769,7 +938,7 @@ def ProjectEvaluationForm(request, id):
 
         notes_text = "\n\n".join(combined_notes) if combined_notes else None
 
-        # خريطة لتحويل الحالة من العربية إلى القيم اللي بالموديل (إذا تستخدم إنجليزي)
+        # --- تحويل حالة المشروع من العربية إلى الإنجليزية (حسب الموديل) ---
         status_ar = request.POST.get('status', '').strip()
         status_map = {
             'مقبول': 'accepted',
@@ -779,13 +948,13 @@ def ProjectEvaluationForm(request, id):
         }
         mapped_status = status_map.get(status_ar, status_ar or project.status)
 
-        # درجة وتصنيف
+        # --- الدرجة الكلية والتصنيف ---
         degree = request.POST.get('degree')
         classification = request.POST.get('classfication') or None
 
-        # التعامل مع أزرار الفورم
+        # --- تحديد نوع الزر الذي تم الضغط عليه ---
         if request.POST.get('saveRating') is not None:
-            # حفظ تقييم نهائي في جدول Ratings
+            # 1️⃣ حفظ تقييم نهائي
             Ratings.objects.create(
                 Creativity=int(Creativity),
                 Implementation=int(Implementation),
@@ -795,7 +964,7 @@ def ProjectEvaluationForm(request, id):
                 notes=notes_text,
                 SupervisorID=supervisor
             )
-            # تعديل بيانات المشروع
+            # تحديث بيانات المشروع
             if degree:
                 try:
                     project.degree = int(degree)
@@ -809,7 +978,7 @@ def ProjectEvaluationForm(request, id):
             return redirect('supervisorDashboard')
 
         elif request.POST.get('saveDraft') is not None:
-            # حفظ مسودة: نحفظ التقييم كـ Ratings مع وسم DRAFT داخل الملاحظات
+            # 2️⃣ حفظ كمسودة (مع وسم DRAFT)
             draft_notes = "[DRAFT]\n" + (notes_text or '')
             Ratings.objects.create(
                 Creativity=int(float(Creativity)),
@@ -820,11 +989,11 @@ def ProjectEvaluationForm(request, id):
                 notes=draft_notes,
                 SupervisorID=supervisor
             )
-            # لا نغيّر حالة المشروع عند الحفظ كمسودة
+            # لا نغير حالة المشروع عند الحفظ كمسودة
             return redirect('ProjectEvaluationForm', id=project.id)
 
         elif request.POST.get('reject') is not None:
-            # رفض المشروع سريعاً (يمكن حفظ ملاحظة الرفض)
+            # 3️⃣ رفض المشروع (مع وسم REJECT)
             reject_notes = notes_text or "تم رفض المشروع بواسطة المشرف."
             Ratings.objects.create(
                 Creativity=0,
@@ -839,17 +1008,39 @@ def ProjectEvaluationForm(request, id):
             project.save()
             return redirect('supervisorDashboard')
 
-    # حساب القيم للعرض (مثلاً لملء القيم السابقة)
-    # نأخذ آخر تقييم (إن وجد) ليعرض كنموذج مملوء
-    last_rating = Ratings.objects.filter(ProjectID=project, SupervisorID=supervisor).order_by('-id').first()
+    # ========== تحضير بيانات التقييمات السابقة للعرض (مع متوسطات النقاط والنجوم) ==========
+    ratings_with_avg = []
+    for rating in all_ratings:
+        total = rating.Creativity + rating.Implementation + rating.Functionality + rating.Interface
+        avg_percent = total / 4  # متوسط مئوي (من 100)
+        stars = round(avg_percent / 20)  # تحويل إلى 5 نجوم (100/20 = 5)
+        stars = max(1, min(5, stars))  # ضمان أن القيمة بين 1 و 5
+
+        ratings_with_avg.append({
+            'rating': rating,
+            'avg_percent': avg_percent,
+            'stars': stars,
+            'total': total,
+            'is_draft': '[DRAFT]' in rating.notes if rating.notes else False,
+            'is_reject': '[REJECT]' in rating.notes if rating.notes else False,
+        })
+
+    # ========== تجهيز السياق ==========
     context = {
         'project': project,
         'videos': videos,
         'pics': pics,
         'comments': Comments.objects.filter(projectID=project),
-        'last_rating': last_rating
+        'last_rating': last_rating,
+        'all_ratings': all_ratings,          # التقييمات الخام (إذا احتجتها)
+        'ratings_with_avg': ratings_with_avg, # تقييمات مع المتوسطات والنجوم (جاهزة للعرض)
+        'ratings_count': all_ratings.count(), # عدد التقييمات
     }
     return render(request, 'pages/Project Evaluation Form.html', context)
+
+
+
+
 def logout(request):
     request.session.flush()
     return redirect('/')
@@ -860,10 +1051,21 @@ def error_404(request):
 def hello_world(request):
     return render(request, 'pages/hello_world.html')
 
+@csrf_protect
 def supervisor_projects(request):
-    return render(request, "pages/supervisor_projects.html")
-def complete_project(request):
-    return render(request, "pages/complete_project.html")
+    if 'email' not in request.session or request.session.get('userType') != 'supervisor':
+        return redirect('login')
+
+    supervisor = Supervisor.objects.get(email=request.session['email'])
+    # اعرض المشاريع المقبولة فقط (أو كل المشاريع تحت إشرافه حسب اختيارك)
+    projects = Projects.objects.filter(supervisor=supervisor, status='accepted').order_by('-requested_at')
+    # او لو تريد رؤية كل الحالات: Projects.objects.filter(supervisor=supervisor).order_by('-requested_at')
+
+    context = {'projects': projects, 'userType': 'supervisor', 'email': request.session.get('email'), 'fullname': request.session.get('fullname')}
+    return render(request, "pages/supervisor_projects.html", context)
+
+
+
 
 def student_requests(request):
     # فقط للمشرفين
@@ -896,3 +1098,274 @@ def student_requests(request):
     }
 
     return render(request, 'pages/student_requests.html', context)
+
+
+
+#تعديل صفحة ارسال طلب
+@csrf_protect
+def submit_request(request):
+    # لازم المستخدم مسجل ويكون student
+    if 'email' not in request.session or request.session.get('userType') != 'student':
+        return redirect('login')
+
+    student = Student.objects.get(email=request.session['email'])
+
+    if request.method == "POST" and request.POST.get('submitRequest'):
+        # اجلب القيم من الفورم
+        major_id = request.POST.get('department')             # يجب ان تكون id للـ Major
+        project_type = request.POST.get('projectType')
+        project_year = request.POST.get('projectYear')
+        title_ar = request.POST.get('title_ar')
+        title_en = request.POST.get('title_en')
+        supervisor_id = request.POST.get('supervisor')
+        idea = request.POST.get('idea_summary')
+        what = request.POST.get('what_will_be_done')
+        stages = request.POST.get('project_stages')
+
+        # تحويلات/تحققات بسيطة
+        try:
+            major = Major.objects.get(id=int(major_id))
+        except Exception:
+            major = None
+
+        sup = None
+        try:
+            if supervisor_id:
+                sup = Supervisor.objects.get(id=int(supervisor_id))
+        except Exception:
+            sup = None
+
+        # أنشئ المشروع كـ pending request
+        project = Projects.objects.create(
+            ProjectName = title_ar or title_en or "مشروع بدون عنوان",
+            UniversityID = student.university,
+            MajorID = major if major else (Major.objects.first() if Major.objects.exists() else None),
+            Student_id = student,
+            yearOfProject = int(project_year) if project_year else timezone.now().year,
+            Description = idea,
+            FullDescription = (what or "") + "\n\nMILESTONES:\n" + (stages or ""),
+            ProjectType = project_type,
+            status = 'pending',
+            requested_at = timezone.now(),
+            supervisor = sup
+        )
+
+        # اضف collaborators من hidden inputs (name="collaborator")
+        collab_ids = request.POST.getlist('collaborator')
+        for cid in collab_ids:
+            try:
+                s = Student.objects.get(id=int(cid))
+                project.collaborators.add(s)
+            except Exception:
+                pass
+
+        project.save()
+
+        # redirect يلي يناسبك - اقترح صفحة تأكيد أو صفحة المشروعات الخاصة بالطالب
+        return redirect('MyProject')   # غيرها لو تحب صفحة تأكيد
+
+    # GET: عرض الفورم (اذا نفس التمبلت)
+    supervisors = Supervisor.objects.all()
+    all_students = Student.objects.exclude(email=student.email)
+    majors = Major.objects.all()
+    return render(request, 'pages/submit_request.html', {
+        'supervisors': supervisors,
+        'all_students': all_students,
+        'majors': majors,
+        'user': student.fullname
+    })
+    
+@csrf_protect
+def student_project_conversation(request, project_id):
+    # صلاحية: فقط الطالب المالك أو collaborators
+    if 'email' not in request.session or request.session.get('userType') != 'student':
+        return redirect('login')
+
+    try:
+        student = Student.objects.get(email=request.session['email'])
+    except Student.DoesNotExist:
+        return redirect('login')
+
+    project = get_object_or_404(Projects, id=project_id)
+    # تأكد أن الطالب مالك المشروع أو من الcollaborators
+    allowed = False
+    if project.Student_id and project.Student_id.id == student.id:
+        allowed = True
+    if project.collaborators.filter(id=student.id).exists():
+        allowed = True
+
+    if not allowed:
+        return redirect('/error/')
+
+    # POST: إرسال رسالة من الطالب
+    if request.method == 'POST' and request.POST.get('send_message') is not None:
+        text = request.POST.get('message_text', '').strip()
+        file = request.FILES.get('message_file', None)
+
+        msg = ProjectConversationMessage(project=project, text=text, sender_student=student)
+        if file:
+            msg.attachment = file
+        msg.save()
+        return redirect('student_project_conversation', project_id=project.id)
+
+    # GET: جلب كل الرسائل المرتبة زمنياً
+    messages = project.messages.all().order_by('created_at')
+
+    return render(request, 'pages/student_conversation.html', {
+        'project': project,
+        'messages': messages,
+        'student': student,
+        'fullname': request.session.get('fullname'),
+        'email': request.session.get('email'),
+    })
+    
+@csrf_protect
+def complete_project(request, project_id):
+    """
+    View واحد ومُحدّث لإدارة صفحة إتمام المشروع:
+    - صلاحية: الطالب المالك أو زميل في collaborators أو المشرف المعين
+    - يدعم: إرسال تحديثات/رسائل (مشرف/طالب)، رفع وسائط (فيديو، صور، pdf)، وإنهاء المشروع (بواسطة المشرف)
+    - عند انتهاء المشرف: يضع is_published=True و status='accepted' ويعيد التوجيه إلى BrowseProjects
+    """
+    from django.contrib import messages  # استيراد محلي عشان ما نعتمد على مكان الاستيراد في الأعلى
+
+    # جلب المشروع (أو 404)
+    project = get_object_or_404(Projects, id=project_id)
+
+    # بيانات الجلسة
+    user_email = request.session.get('email')
+    user_type = request.session.get('userType')
+
+    # التحقق من هوية المستخدم (طالب أو مشرف)
+    student_user = None
+    supervisor_user = None
+    allowed = False
+
+    if user_email and user_type == 'student':
+        try:
+            student_user = Student.objects.get(email=user_email)
+            # إن كان مالك المشروع
+            if project.Student_id and project.Student_id.id == student_user.id:
+                allowed = True
+            # أو إن كان من collaborators
+            if project.collaborators.filter(id=student_user.id).exists():
+                allowed = True
+        except Student.DoesNotExist:
+            student_user = None
+
+    if user_email and user_type == 'supervisor':
+        try:
+            supervisor_user = Supervisor.objects.get(email=user_email)
+            # السماح لو هو المشرف المعين
+            if project.supervisor and project.supervisor.id == supervisor_user.id:
+                allowed = True
+        except Supervisor.DoesNotExist:
+            supervisor_user = None
+
+    # لو مش مسموح له بالدخول
+    if not allowed:
+        return redirect('/error/')
+
+    # POST handling
+    if request.method == 'POST':
+        # 1) مشرف أو طالب يرسل تحديث/رسالة (زر send_update أو send_message)
+        # دعم كلا الاسمين لأن القوالب قد تستعمل أحدهما
+        if request.POST.get('send_update') is not None or request.POST.get('send_message') is not None:
+            # نص الرسالة قد يأتي من update_message_text أو message_text
+            text = request.POST.get('update_message_text', '') or request.POST.get('message_text', '')
+            text = text.strip()
+            file = request.FILES.get('update_file') or request.FILES.get('message_file')
+
+            # لا تحفظ رسالة فارغة بدون نص وبدون مرفق
+            if not text and not file:
+                messages.warning(request, "لا يمكن إرسال رسالة فارغة.")
+                return redirect('complete_project', project_id=project.id)
+
+            msg = ProjectConversationMessage(project=project, text=text)
+
+            # عيّن المرسل الصحيح
+            if user_type == 'student' and student_user:
+                msg.sender_student = student_user
+            elif user_type == 'supervisor' and supervisor_user:
+                msg.sender_supervisor = supervisor_user
+
+            if file:
+                msg.attachment = file
+
+            msg.save()
+            messages.success(request, "تم إرسال الرسالة بنجاح.")
+            return redirect('complete_project', project_id=project.id)
+
+        # 2) حفظ بيانات / رفع وسائط (save_data)
+        elif request.POST.get('save_data') is not None:
+            # ملفات قد تُرسل: videoFile, ImageFile (multiple), PDFFILE
+            video_file = request.FILES.get('videoFile')
+            image_files = request.FILES.getlist('ImageFile')
+            pdf_file = request.FILES.get('PDFFILE')
+
+            # حفظ الفيديو
+            if video_file:
+                try:
+                    ProjectMedia.objects.create(ProjectID=project, vedio=video_file)
+                except Exception as e:
+                    messages.error(request, f"خطأ عند حفظ الفيديو: {e}")
+                    return redirect('complete_project', project_id=project.id)
+
+            # حفظ الصور
+            for img in image_files:
+                try:
+                    ProjectPictures.objects.create(ProjectID=project, image=img)
+                except Exception as e:
+                    # لا نوقف العملية للصور المتبقية، فقط نعلم المستخدم
+                    messages.warning(request, f"بعض الصور لم تحفظ: {e}")
+
+            # حفظ PDF في حقل المشروع نفسه
+            if pdf_file:
+                try:
+                    project.pdf_file = pdf_file
+                    project.save()
+                except Exception as e:
+                    messages.error(request, f"خطأ عند حفظ ملف الـ PDF: {e}")
+                    return redirect('complete_project', project_id=project.id)
+
+            messages.success(request, "تم حفظ الوسائط بنجاح.")
+            return redirect('complete_project', project_id=project.id)
+
+        # 3) إنهاء المشروع (للمشرف فقط)
+        elif request.POST.get('finish_project') is not None and user_type == 'supervisor' and supervisor_user:
+            # نعلّم المشروع منشوراً حتى يظهر في BrowseProjects
+            project.is_published = True
+            # نضع الحالة accepted ليطابق فلترة BrowseProjects (يمكن تغييرها لاحقاً)
+            project.status = 'accepted'
+            # نحدّث تاريخ الرفع ليظهر كأحدث (اختياري لكنه مفيد)
+            try:
+                project.UploadDate = timezone.now()
+            except Exception:
+                pass
+            project.save()
+
+            messages.success(request, "تم إنهاء المشروع ونشره في صفحة التصفح.")
+            # نعيد التوجيه لصفحة التصفح ليرى المشرف والطلاب أنه أصبح مرئياً
+            return redirect('BrowseProjects')
+
+        # 4) أي زر آخر يمكن إضافته هنا لاحقاً
+
+    # GET: جلب كل البيانات لعرضها في القالب
+    messages_qs = project.messages.all().order_by('created_at')
+    pics = ProjectPictures.objects.filter(ProjectID=project)
+    videos = ProjectMedia.objects.filter(ProjectID=project)
+    pdf = project.pdf_file if getattr(project, 'pdf_file', None) else None
+
+    context = {
+        'project': project,
+        'messages': messages_qs,
+        'pdf': pdf,
+        'videos': videos,
+        'pics': pics,
+        'user_type': user_type,
+        'fullname': request.session.get('fullname'),
+        'email': user_email,
+    }
+    return render(request, 'pages/complete_project.html', context) 
+    
+    

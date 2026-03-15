@@ -42,7 +42,7 @@
                     <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-right me-2"></i>العودة إلى المشاريع
                     </a>
-                    <!-- زر حفظ مسودة يرسل POST مع name=saveDraft -->
+                    <!-- زر حفظ مسودة -->
                     <button type="submit" form="evaluationForm" name="saveDraft" value="1" class="btn btn-primary">
                         <i class="bi bi-save me-2"></i>حفظ كمسودة
                     </button>
@@ -97,11 +97,11 @@
                         </ul>
                     </div>
 
-                    <!-- FORM: نضيف id ليستخدمه زر حفظ المسودة -->
-                    <form id="evaluationForm" method="POST" enctype="multipart/form-data">
+                    <!-- FORM: نضيف action للفيوز -->
+                    <form id="evaluationForm" method="POST" action="{% url 'ProjectEvaluationForm' project.id %}">
                         {% csrf_token %}
 
-                        <!-- معايير التقييم: ملاحظة مهمة: لكل textarea أضفنا name -->
+                        <!-- معايير التقييم: إضافة القيم المحفوظة مسبقاً -->
                         <div class="mb-4">
                             <h5 class="mb-3">معايير التقييم</h5>
 
@@ -111,10 +111,10 @@
                                     <h6 class="fw-bold">الإبداع</h6>
                                     <div class="rating-stars">★ ★ ★ ★ ☆</div>
                                 </div>
-                                <input type="range" class="form-range mt-2" id="criterion1" name="Creativity" min="0" max="100" step="1">
+                                <input type="range" class="form-range mt-2" id="criterion1" name="Creativity" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Creativity }}{% endif %}">
                                 <div class="mt-2">
                                     <label for="note_creativity" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_creativity" name="note_creativity" rows="3" placeholder="اكتب ملاحظاتك..."></textarea>
+                                    <textarea class="form-control" id="note_creativity" name="note_creativity" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
                                 </div>
                             </div>
 
@@ -124,10 +124,10 @@
                                     <h6 class="fw-bold">التنفيذ</h6>
                                     <div class="rating-stars">★ ★ ★ ★ ☆</div>
                                 </div>
-                                <input type="range" class="form-range mt-2" id="criterion2" name="Implementation" min="0" max="100" step="1">
+                                <input type="range" class="form-range mt-2" id="criterion2" name="Implementation" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Implementation }}{% endif %}">
                                 <div class="mt-2">
                                     <label for="note_implementation" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_implementation" name="note_implementation" rows="3" placeholder="اكتب ملاحظاتك..."></textarea>
+                                    <textarea class="form-control" id="note_implementation" name="note_implementation" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
                                 </div>
                             </div>
 
@@ -137,10 +137,10 @@
                                     <h6 class="fw-bold">الوظائف</h6>
                                     <div class="rating-stars">★ ★ ★ ★ ☆</div>
                                 </div>
-                                <input type="range" class="form-range mt-2" id="criterion3" name="Functionality" min="0" max="100" step="1">
+                                <input type="range" class="form-range mt-2" id="criterion3" name="Functionality" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Functionality }}{% endif %}">
                                 <div class="mt-2">
                                     <label for="note_functionality" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_functionality" name="note_functionality" rows="3" placeholder="اكتب ملاحظاتك..."></textarea>
+                                    <textarea class="form-control" id="note_functionality" name="note_functionality" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
                                 </div>
                             </div>
 
@@ -150,10 +150,10 @@
                                     <h6 class="fw-bold">الواجهة</h6>
                                     <div class="rating-stars">★ ★ ★ ★ ☆</div>
                                 </div>
-                                <input type="range" class="form-range mt-2" id="criterion4" name="Interface" min="0" max="100" step="1">
+                                <input type="range" class="form-range mt-2" id="criterion4" name="Interface" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Interface }}{% endif %}">
                                 <div class="mt-2">
                                     <label for="note_interface" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_interface" name="note_interface" rows="3" placeholder="اكتب ملاحظاتك..."></textarea>
+                                    <textarea class="form-control" id="note_interface" name="note_interface" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -165,7 +165,7 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="input-group mb-2">
-                                            <input type="number" class="form-control" name="degree" placeholder="الدرجة الكلية من 100" min="0" max="100">
+                                            <input type="number" class="form-control" name="degree" placeholder="الدرجة الكلية من 100" min="0" max="100" value="{% if project.degree %}{{ project.degree }}{% endif %}">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
@@ -175,11 +175,11 @@
                                             <label class="form-label fw-bold">التصنيف العام</label>
                                             <select class="form-select" name="classfication">
                                                 <option value="">اختر التصنيف</option>
-                                                <option value="ممتاز">ممتاز</option>
-                                                <option value="جيد جداً">جيد جداً</option>
-                                                <option value="جيد">جيد</option>
-                                                <option value="مقبول">مقبول</option>
-                                                <option value="ضعيف">ضعيف</option>
+                                                <option value="ممتاز" {% if project.classification == 'ممتاز' %}selected{% endif %}>ممتاز</option>
+                                                <option value="جيد جداً" {% if project.classification == 'جيد جداً' %}selected{% endif %}>جيد جداً</option>
+                                                <option value="جيد" {% if project.classification == 'جيد' %}selected{% endif %}>جيد</option>
+                                                <option value="مقبول" {% if project.classification == 'مقبول' %}selected{% endif %}>مقبول</option>
+                                                <option value="ضعيف" {% if project.classification == 'ضعيف' %}selected{% endif %}>ضعيف</option>
                                             </select>
                                         </div>
 
@@ -187,10 +187,10 @@
                                             <label class="form-label fw-bold">حالة المشروع</label>
                                             <select class="form-select" name="status">
                                                 <option value="">اختر الحالة</option>
-                                                <option value="مقبول">مقبول</option>
-                                                <option value="مرفوض">مرفوض</option>
-                                                <option value="تحت المراجعة">تحت المراجعة</option>
-                                                <option value="تحديث مطلوب">تحديث مطلوب</option>
+                                                <option value="مقبول" {% if project.status == 'accepted' %}selected{% endif %}>مقبول</option>
+                                                <option value="مرفوض" {% if project.status == 'rejected' %}selected{% endif %}>مرفوض</option>
+                                                <option value="تحت المراجعة" {% if project.status == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
+                                                <option value="تحديث مطلوب" {% if project.status == 'update_required' %}selected{% endif %}>تحديث مطلوب</option>
                                             </select>
                                         </div>
                                     </div>
@@ -216,7 +216,7 @@
                                 <i class="bi bi-x-circle me-2"></i>رفض المشروع
                             </button>
 
-                            <!-- حفظ مسودة (بديل: زر أعلاه يرسل بنفس الفورم مع اسم saveDraft) -->
+                            <!-- حفظ مسودة -->
                             <button type="submit" name="saveDraft" value="1" class="btn btn-outline-secondary me-2">
                                 <i class="bi bi-save me-2"></i>حفظ المسودة
                             </button>

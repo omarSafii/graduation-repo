@@ -52,47 +52,94 @@ class Supervisor(BaseUser):
 
 class Projects(models.Model):
     ProjectName = models.CharField(max_length=150)
-    UniversityID = models.ForeignKey(University , on_delete=models.CASCADE)
-    MajorID = models.ForeignKey(Major , on_delete= models.CASCADE)
-    
-    # الحقل القديم: صاحب المشروع الأساسي (محفوظ كما كان) — احتفظنا به لأجل التوافق
-    Student_id = models.ForeignKey(Student , on_delete=models.CASCADE , blank=True , null=True)
 
-    # ======= إضافات جديدة (لتمكين اختيار زميل/مشرف وطلبات معلقة) =======
-    # collaborators: يسمح للطالب باختيار زميل مشروع (اختياري، يمكن أن يحتوي على صفر أو أكثر)
-    collaborators = models.ManyToManyField(Student, blank=True, related_name='collaborations')
-    # تعليق: هذا حقل جديد؛ لا يلغي Student_id الموجود (الذي يبقى كـ "الرافع/المالك" الافتراضي).
+    UniversityID = models.ForeignKey(
+        University,
+        on_delete=models.CASCADE
+    )
 
-    # supervisor: إمكانية تعيين مشرف إلى المشروع (قد يختاره الطالب عند الرفع)
-    supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True, blank=True, related_name='supervised_projects')
-    # تعليق: حقل جديد؛ إذا حُذف المشرف، نبقي المشروع (SET_NULL) بدلاً من حذفه.
+    MajorID = models.ForeignKey(
+        Major,
+        on_delete=models.CASCADE
+    )
 
-    # وقت/سنة المشروع والتفاصيل والملفات كما كانت
+    # صاحب المشروع الأساسي
+    Student_id = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True
+    )
+
+    # الطلاب المشاركون
+    collaborators = models.ManyToManyField(
+        Student,
+        blank=True,
+        related_name='collaborations'
+    )
+
+    # المشرف
+    supervisor = models.ForeignKey(
+        Supervisor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='supervised_projects'
+    )
+
+    # سنة المشروع
     yearOfProject = models.IntegerField()
-    Description = models.TextField(blank=True , null=True)
-    FullDescription = models.TextField(blank=True , null=True)
-    pdf_file = models.FileField(upload_to='PDF/',blank=True , null=True)
+
+    Description = models.TextField(blank=True, null=True)
+    FullDescription = models.TextField(blank=True, null=True)
+
+    pdf_file = models.FileField(
+        upload_to='PDF/',
+        blank=True,
+        null=True
+    )
+
     UploadDate = models.DateTimeField(auto_now_add=True)
-    rates = models.FloatField( default=0.0 , blank=True , null=True)
-    ProjectType = models.CharField( max_length=50 , blank=True , null=True)
-    degree = models.FloatField(null = True , blank=True)
-    
-    # status: حالة المشروع (pending, accepted, rejected) — أضفت قيمة افتراضية 'pending'
-    status = models.CharField(max_length=50, null=True, blank=True, default='pending')
-    # تعليق: تم إضافة default='pending' حتى تظهر المشاريع كـ "قيد الانتظار" تلقائياً عند الرفع.
 
-    # classification: أصلحت المكان والاسم داخل الكلاس (كان خارج الكلاس سابقاً)
-    classification = models.CharField(max_length=50, null=True, blank=True)
-    # تعليق: هذا نفس الحقل السابق لكن مصحح مكانه وإملاؤه (كان "classfication" خارج الكلاس).
+    rates = models.FloatField(
+        default=0.0,
+        blank=True,
+        null=True
+    )
 
-    # requested_at: وقت طلب أو رفع المشروع (مفيد لآلة "تجاهل بعد X أيام")
+    # نوع المشروع (تخرج / حلقة بحث / فصلي)
+    ProjectType = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True
+    )
+
+    degree = models.FloatField(
+        null=True,
+        blank=True
+    )
+
+    # حالة المشروع
+    status = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        default='pending'
+    )
+
+    # هل المشروع منشور
+    is_published = models.BooleanField(default=False)
+
+    classification = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+
     requested_at = models.DateTimeField(default=timezone.now)
-
-    # تعليق: تم إضافة هذا الحقل لتحديد زمن الطلب حتى نقدر نطبق منطق التجاهل التلقائي حسب الدرجة الزمنية.
 
     def __str__(self):
         return self.ProjectName
-
 class Ratings(models.Model):
     Creativity = models.IntegerField() # الإبداع
     Implementation = models.IntegerField() # التنفيذ
@@ -116,6 +163,28 @@ class ProjectPictures(models.Model):
 class ProjectMedia(models.Model):
     ProjectID = models.ForeignKey(Projects, on_delete=models.CASCADE)
     vedio = models.FileField(upload_to='videos/')
+
+
+
+# --- اضافة للمحادثات/الملفات بين المشرف والطالب ---
+class ProjectConversationMessage(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='messages')
+    # إما مرسل طالب أو مرسل مشرف (نحافظ على بساطة الربط)
+    sender_student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
+    sender_supervisor = models.ForeignKey(Supervisor, on_delete=models.CASCADE, null=True, blank=True)
+    text = models.TextField(blank=True, null=True)
+    attachment = models.FileField(upload_to='conversations/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def sender_name(self):
+        if self.sender_supervisor:
+            return self.sender_supervisor.fullname
+        if self.sender_student:
+            return self.sender_student.fullname
+        return "مجهول"
+
+
+
 
 class AdminUser(BaseUser):
     def __str__(self):

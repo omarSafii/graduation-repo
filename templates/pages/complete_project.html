@@ -1,4 +1,6 @@
-{% extends "base.html" %} {% load static %} {% block content %}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
 
 <style>
   body {
@@ -26,6 +28,46 @@
     color: #0062be;
     border-bottom: 2px solid #e9ecef;
     padding-bottom: 0.5rem;
+  }
+
+  /* ستايل قسم البيانات الأساسية القابل للطي */
+  .collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    color: #0062be;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+  }
+  
+  .collapsible-header h4 {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .toggle-btn {
+    background: none;
+    border: none;
+    color: #0062be;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 5px;
+    transition: transform 0.3s ease;
+  }
+  
+  .toggle-btn:hover {
+    transform: scale(1.1);
+  }
+  
+  .collapsible-content {
+    display: none;
+  }
+  
+  .collapsible-content.show {
+    display: block;
   }
 
   .readonly-box {
@@ -71,6 +113,13 @@
     border-radius: 0.75rem;
     border: 2px solid #dee2e6;
   }
+  .video-card {
+    max-height: 320px;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+    padding: 8px;
+  }
   @media (max-width: 768px) {
     .preview-images {
       flex-direction: column;
@@ -93,57 +142,225 @@
         <div class="project-form">
           <h2 class="text-center mb-4">إتمام بيانات المشروع</h2>
 
-          <!-- عرض البيانات القديمة -->
+          <!-- بطاقة معلومات المشروع الأساسية -->
+<div class="card p-4 mb-4">
+  <h3>
+    {% if project.ProjectName %}
+      {{ project.ProjectName }}
+    {% elif project.title_ar %}
+      {{ project.title_ar }}
+    {% else %}
+      مشروع بدون اسم
+    {% endif %}
+  </h3>
+  <div class="mt-2">
+    <span class="text-muted">القسم:</span> 
+    {% if project.MajorID %}
+      {{ project.MajorID.major_name }}
+    {% elif project.department %}
+      {{ project.department }}
+    {% else %}
+      غير محدد
+    {% endif %} |
+    <span class="text-muted ms-2">السنة:</span> 
+    {% if project.yearOfProject %}
+      {{ project.yearOfProject }}
+    {% elif project.projectYear %}
+      {{ project.projectYear }}
+    {% else %}
+      غير محدد
+    {% endif %} |
+    <span class="text-muted ms-2">النوع:</span> 
+    {% if project.ProjectType %}
+      {{ project.ProjectType }}
+    {% elif project.projectType %}
+      {{ project.projectType }}
+    {% else %}
+      غير محدد
+    {% endif %}
+  </div>
+  <div class="mt-3">
+    <strong>وصف مختصر:</strong>
+    <div>
+      {% if project.Description %}
+        {{ project.Description|linebreaksbr }}
+      {% elif project.idea_summary %}
+        {{ project.idea_summary|linebreaksbr }}
+      {% elif project.Description|default:project.idea_summary %}
+        {{ project.Description|default:project.idea_summary|linebreaksbr }}
+      {% else %}
+        -
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+          <!-- البيانات الأساسية - قسم قابل للطي -->
+          <!-- البيانات الأساسية - قسم قابل للطي -->
+<div class="form-section">
+  <div class="collapsible-header" onclick="toggleBasicData()">
+    <h4>البيانات الأساسية</h4>
+    <span class="toggle-btn" id="toggleIcon">▼</span>
+  </div>
+
+  <div class="collapsible-content" id="basicDataContent">
+    <div class="readonly-box">
+      <strong>القسم:</strong> 
+      {% if project.department %}
+        {{ project.department }}
+      {% elif project.MajorID %}
+        {{ project.MajorID.major_name }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>اسم المشروع (عربي):</strong> 
+      {% if project.title_ar %}
+        {{ project.title_ar }}
+      {% elif project.ProjectName %}
+        {{ project.ProjectName }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>اسم المشروع (إنجليزي):</strong> 
+      {% if project.title_en %}
+        {{ project.title_en }}
+      {% elif project.ProjectName %}
+        {{ project.ProjectName }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>نوع المشروع:</strong> 
+      {% if project.projectType %}
+        {{ project.projectType }}
+      {% elif project.ProjectType %}
+        {{ project.ProjectType }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>السنة:</strong> 
+      {% if project.projectYear %}
+        {{ project.projectYear }}
+      {% elif project.yearOfProject %}
+        {{ project.yearOfProject }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>ملخص الفكرة:</strong> 
+      {% if project.idea_summary %}
+        {{ project.idea_summary }}
+      {% elif project.Description %}
+        {{ project.Description }}
+      {% else %}
+        لا يوجد ملخص
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>ما سيتم إنجازه:</strong> 
+      {% if project.what_will_be_done %}
+        {{ project.what_will_be_done }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>مراحل المشروع:</strong> 
+      {% if project.project_stages %}
+        {{ project.project_stages }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>الرافع (مالك المشروع):</strong>
+      {% if project.Student_id %}
+        {{ project.Student_id.fullname }}
+      {% else %}
+        غير محدد
+      {% endif %}
+      <br>
+      <strong class="mt-2 d-block">زملاء المشروع:</strong>
+      {% with collab_list=project.collaborators.all %}
+        {% if collab_list %}
+          {% for s in collab_list %}
+            {{ s.fullname }}{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        {% else %}
+          لا يوجد
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <div class="readonly-box">
+      <strong>المشرف:</strong> 
+      {% if project.supervisor %}
+        {{ project.supervisor.fullname }}
+      {% else %}
+        غير محدد
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+          <!-- وسائط المشروع الحالية -->
           <div class="form-section">
-            <h4>البيانات الأساسية</h4>
+            <h4>وسائط المشروع الحالية</h4>
+            
+            {% if pdf %}
+              <div class="mb-2">
+                <strong>ملف PDF:</strong>
+                <a href="{{ pdf.url }}" target="_blank">فتح ملف المشروع (PDF)</a>
+              </div>
+            {% endif %}
 
-            <div class="readonly-box">
-              <strong>القسم:</strong> {{ project.department }}
-            </div>
+            {% if videos and videos.exists %}
+              <div class="mb-3">
+                <strong>فيديوهات:</strong>
+                <div class="d-flex flex-wrap gap-3 mt-2">
+                  {% for v in videos %}
+                    <div class="video-card">
+                      <video controls style="max-width:300px; max-height:250px;">
+                        <source src="{{ v.vedio.url }}" />
+                        متصفحك لا يدعم تشغيل الفيديو
+                      </video>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
 
-            <div class="readonly-box">
-              <strong>اسم المشروع (عربي):</strong> {{ project.title_ar }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>اسم المشروع (إنجليزي):</strong> {{ project.title_en }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>نوع المشروع:</strong> {{ project.projectType }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>السنة:</strong> {{ project.projectYear }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>ملخص الفكرة:</strong> {{ project.idea_summary }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>ما سيتم إنجازه:</strong> {{ project.what_will_be_done }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>مراحل المشروع:</strong> {{ project.project_stages }}
-            </div>
-
-            <div class="readonly-box">
-              <strong>الطلاب:</strong>
-              {% for s in project.students.all %} {{ s.fullname }}{% if not
-              forloop.last %}, {% endfor %}
-            </div>
-
-            <div class="readonly-box">
-              <strong>المشرف:</strong> {{ project.supervisor.fullname }}
-            </div>
+            {% if pics and pics.exists %}
+              <div>
+                <strong>صور المشروع:</strong>
+                <div class="preview-images mt-2">
+                  {% for p in pics %}
+                    <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="pic"></a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
           </div>
 
-          <!-- رفع الوسائط -->
-          <!-- Media Upload Section -->
+          <!-- رفع الوسائط الجديدة -->
           <div class="form-section">
-            <h4>رفع الملفات والوسائط</h4>
+            <h4>رفع ملفات ووسائط جديدة</h4>
 
             <!-- Video Upload -->
             <div class="mb-3">
@@ -197,30 +414,6 @@
             </div>
           </div>
 
-          <!-- التقييم -->
-          <!-- <div class="form-section">
-            <h4>التقييم</h4>
-
-            <div class="mb-3">
-              <label class="form-label">الدرجة</label>
-              <input
-                type="number"
-                name="rate"
-                class="form-control"
-                min="0"
-                max="100"
-              />
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">ملاحظات</label>
-              <textarea
-                name="rate_notes"
-                class="form-control"
-                rows="3"
-              ></textarea>
-            </div>
-          </div> -->
           <!-- ================= Conversation & File Updates Section ================= -->
           <div class="form-section">
             <h4>مراسلات وتعديلات المشروع</h4>
@@ -232,86 +425,106 @@
               <div class="mb-3">
                 <label class="form-label">رسالة مرفقة مع الملف</label>
                 <textarea
+                  name="update_message_text"
                   class="form-control"
                   rows="3"
-                  placeholder="اكتب ملاحظاتك أو التعديلات المطلوبة هنا..."
-                ></textarea>
+                  placeholder="اكتب ملاحظاتك أو التعديلات المطلوبة هنا..."></textarea>
               </div>
 
               <div class="mb-3">
                 <label class="form-label">رفع ملف (PDF أو Word فقط)</label>
                 <input
                   type="file"
+                  name="update_file"
                   class="form-control"
-                  accept=".pdf,.doc,.docx"
-                />
-                <small class="text-muted">
-                  الصيغ المسموحة: PDF, DOC, DOCX
-                </small>
+                  accept=".pdf,.doc,.docx" />
+                <small class="text-muted">الصيغ المسموحة: PDF, DOC, DOCX</small>
               </div>
 
-              <button type="button" class="btn btn-primary">رفع التحديث</button>
+              <!-- زر الإرسال: يصبح submit باسم send_update -->
+              <button type="submit" name="send_update" class="btn btn-primary">رفع التحديث</button>
             </div>
 
             <!-- Conversation History -->
             <div class="card p-3 shadow-sm">
               <h6 class="mb-4">سجل التحديثات (من الأقدم للأحدث)</h6>
 
-              <!-- Oldest Update -->
-              <div class="border rounded p-3 mb-3 bg-light">
-                <div class="d-flex justify-content-between">
-                  <strong class="text-primary">الطالب: أحمد محمد</strong>
-                  <small class="text-muted">2025-02-01 | 10:15 AM</small>
-                </div>
-                <p class="mt-2 mb-2">
-                  قمنا بتحديث الفصل الأول وإضافة المخططات المطلوبة.
-                </p>
-                <a href="#" class="btn btn-sm btn-outline-secondary">
-                  فتح الملف (Project_V1.pdf)
-                </a>
-              </div>
+              {% if messages %}
+                {% for msg in messages %}
+                  <div class="border rounded p-3 mb-3 {% if forloop.last %}bg-light{% endif %}">
+                    <div class="d-flex justify-content-between">
+                      <strong class="{% if msg.sender_supervisor %}text-success{% else %}text-primary{% endif %}">
+                        {% if msg.sender_supervisor %}
+                          {{ msg.sender_supervisor.fullname }} (مشرف)
+                        {% elif msg.sender_student %}
+                          {{ msg.sender_student.fullname }} (طالب)
+                        {% else %}
+                          {{ msg.sender_name }}
+                        {% endif %}
+                      </strong>
+                      <small class="text-muted">{{ msg.created_at|date:"Y-m-d H:i" }}</small>
+                    </div>
 
-              <!-- Second Update -->
-              <div class="border rounded p-3 mb-3">
-                <div class="d-flex justify-content-between">
-                  <strong class="text-success">المشرف: د. سامر علي</strong>
-                  <small class="text-muted">2025-02-03 | 04:40 PM</small>
-                </div>
-                <p class="mt-2 mb-2">
-                  يرجى تعديل قسم المنهجية وإضافة مراجع علمية أحدث.
-                </p>
-                <a href="#" class="btn btn-sm btn-outline-secondary">
-                  فتح الملف (Supervisor_Notes.docx)
-                </a>
-              </div>
+                    {% if msg.text %}
+                      <p class="mt-2 mb-2">{{ msg.text|linebreaksbr }}</p>
+                    {% endif %}
 
-              <!-- Latest Update -->
-              <div class="border rounded p-3 mb-3 bg-light">
-                <div class="d-flex justify-content-between">
-                  <strong class="text-primary">الطالب: أحمد محمد</strong>
-                  <small class="text-muted">2025-02-06 | 09:20 PM</small>
-                </div>
-                <p class="mt-2 mb-2">
-                  تم تعديل المنهجية وإضافة 5 مراجع جديدة كما طلبتم.
-                </p>
-                <a href="#" class="btn btn-sm btn-outline-secondary">
-                  فتح الملف (Project_V2.pdf)
-                </a>
-              </div>
+                    {% if msg.attachment %}
+                      <a href="{{ msg.attachment.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                        فتح الملف
+                      </a>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p class="text-muted">لا توجد تحديثات بعد.</p>
+              {% endif %}
             </div>
           </div>
 
+          <!-- أزرار أسفل الصفحة -->
           <div class="text-center">
-            <input
-              type="submit"
-              class="btn btn-primary px-5"
-              value="حفظ البيانات"
-            />
+            <input type="submit" name="save_data" class="btn btn-primary px-5" value="حفظ البيانات" />
+            {% if user_type == 'supervisor' and project.supervisor and project.supervisor.email == email %}
+              <button type="submit" name="finish_project" class="btn btn-success px-4 ms-2"
+                      onclick="return confirm('هل أنت متأكد من إنهاء المشروع نهائياً؟')">
+                إنهاء المشروع بالكامل
+              </button>
+            {% endif %}
+            <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary ms-2">العودة إلى مشاريعي</a>
           </div>
+
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+  // دالة لطي وعرض البيانات الأساسية
+  function toggleBasicData() {
+    const content = document.getElementById('basicDataContent');
+    const icon = document.getElementById('toggleIcon');
+    
+    if (content.classList.contains('show')) {
+      content.classList.remove('show');
+      icon.textContent = '▼';
+    } else {
+      content.classList.add('show');
+      icon.textContent = '▲';
+    }
+  }
+
+  // تنفيذ بعد تحميل الصفحة لجعل القسم مطويًا افتراضيًا
+  document.addEventListener('DOMContentLoaded', function() {
+    const content = document.getElementById('basicDataContent');
+    const icon = document.getElementById('toggleIcon');
+    
+    // التأكد من أن القسم مطوي في البداية
+    content.classList.remove('show');
+    icon.textContent = '▼';
+  });
+</script>
+
 <script src="{% static 'js/main.js' %}"></script>
 {% endblock content %}

@@ -2,245 +2,563 @@
 {% include "base.html" %}
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/browser.css' %}">
+    <style>
+        /* تحسينات متقدمة للبطاقات */
+        .project-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: white;
+            position: relative;
+        }
+        .project-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 1.5rem 3rem rgba(0,98,190,0.15) !important;
+        }
+        .project-image {
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+        .project-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .project-card:hover .project-image img {
+            transform: scale(1.05);
+        }
+        .project-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+            z-index: 1;
+        }
+        .project-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2;
+            padding: 0.35rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.9);
+            color: #0062be;
+            backdrop-filter: blur(4px);
+        }
+        .project-type-badge {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 2;
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(0,98,190,0.9);
+            color: white;
+            backdrop-filter: blur(4px);
+        }
+        .card-body {
+            padding: 1.25rem 1rem 1rem;
+        }
+        .project-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: #1e293b;
+        }
+        .project-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+        .meta-item {
+            font-size: 0.75rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .meta-item i {
+            font-size: 0.8rem;
+            color: #0062be;
+        }
+        .project-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        .rating-stars {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .star-filled {
+            color: #fbbf24;
+        }
+        .star-empty {
+            color: #cbd5e1;
+        }
+        .btn-details {
+            background: #f1f5f9;
+            border: none;
+            color: #1e293b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            transition: all 0.3s;
+        }
+        .btn-details:hover {
+            background: #0062be;
+            color: white;
+        }
+        .card-footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .supervisor-name {
+            font-size: 0.8rem;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .filter-select, .filter-input {
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            transition: border-color 0.2s;
+        }
+        .filter-select:focus, .filter-input:focus {
+            border-color: #0062be;
+            box-shadow: 0 0 0 0.2rem rgba(0,98,190,0.25);
+        }
+        .btn-primary {
+            background: #0062be;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background: #004a9e;
+        }
+        .btn-outline-secondary {
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+        }
+        /* قسم الإحصائيات (يمكن إزالته إن لم تكن المتغيرات متوفرة) */
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.03);
+            transition: all 0.3s;
+            border: 1px solid #eef2f6;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.75rem 1.5rem rgba(0,98,190,0.1);
+            border-color: #0062be;
+        }
+        .stat-icon {
+            font-size: 2rem;
+            color: #0062be;
+            margin-bottom: 0.5rem;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-   <!-- Navbar -->
-     <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
 
+<!-- ==================== Navbar محسّن (متطابق مع الصفحة الرئيسية) ==================== -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
             <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
             <span>منصة مشاريع التخرج</span>
         </a>
-
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
-
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav">
-
+            <ul class="navbar-nav align-items-center">
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'index' %}">الرئيسية</a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a>
+                    <a class="nav-link active" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a>
                 </li>
 
-                {# ===== زر طلبات الطلاب للمشرف فقط ===== #}
                 {% if userType == 'supervisor' %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'supervisor_requests' %}">
-                        طلبات الطلاب
-                    </a>
+                    <a class="nav-link" href="{% url 'supervisor_requests' %}">طلبات الطلاب</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'supervisorDashboard' %}">لوحة التحكم</a>
+                </li>
+                {% endif %}
+
+                {% if userType == 'student' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'UploadProject' %}">رفع مشروع</a>
+                </li>
+                {% endif %}
+
+                {% if userType == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'AdminDashboard' %}">لوحة الأدمن</a>
                 </li>
                 {% endif %}
 
                 {% if email == none %}
-                <li class="nav-item">
-                    <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}">
-                        تسجيل الدخول / إنشاء حساب
-                    </a>
-                </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-light text-primary ms-2 px-3" href="{% url 'login' %}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> دخول / تسجيل
+                        </a>
+                    </li>
                 {% else %}
-                <li class="nav-item">
-                    {% if userType == 'student' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'studentProfile' %}">
-                            مرحبا, {{ fullname }} 
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle btn btn-light text-primary ms-2 px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i> {{ fullname }}
                         </a>
-                    {% elif userType == 'supervisor' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'supervisorDashboard' %}">
-                             لوحة تحكم  {{ fullname }}
-                        </a>
-                    {% elif userType == 'admin' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'AdminDashboard' %}">
-                           مرحبا,  {{ fullname }} 
-                        </a>
-                    {% endif %}
-                </li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            {% if userType == 'student' %}
+                                <li><a class="dropdown-item" href="{% url 'studentProfile' %}"><i class="bi bi-person me-2"></i>حسابي</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            {% elif userType == 'supervisor' %}
+                                <li><a class="dropdown-item" href="{% url 'supervisorDashboard' %}"><i class="bi bi-speedometer2 me-2"></i>لوحة التحكم</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>تسجيل خروج</a></li>
+                        </ul>
+                    </li>
                 {% endif %}
-
             </ul>
         </div>
     </div>
 </nav>
 
-    <!-- Filters Bar (New Styled Version) -->
-    <div class="container mt-4">
-        <div class="p-3 rounded shadow-sm border bg-white">
+<!-- ==================== إحصائيات سريعة (اختياري - يمكن إزالتها) ==================== -->
+<div class="container mt-4">
+    <div class="row g-3">
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="bi bi-folder"></i></div>
+                <div class="stat-number">{{ projects_count|default:projects|length }}</div>
+                <div class="stat-label">مشروع منشور</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
+                <div class="stat-number">{{ supervisors_count|default:"0" }}</div>
+                <div class="stat-label">مشرف</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="bi bi-building"></i></div>
+                <div class="stat-number">{{ universities_count|default:"0" }}</div>
+                <div class="stat-label">جامعة</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="bi bi-tags"></i></div>
+                <div class="stat-number">{{ majors_count|default:"0" }}</div>
+                <div class="stat-label">تخصص</div>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <h5 class="mb-3 fw-bold">
-                <i class="bi bi-funnel me-2 text-primary"></i>تصفية المشاريع
-            </h5>
+<!-- ==================== شريط الفلاتر المتقدم ==================== -->
+<div class="container mt-4">
+    <div class="p-4 rounded-4 shadow-sm border bg-white">
+        <h5 class="mb-3 fw-bold">
+            <i class="bi bi-funnel me-2 text-primary"></i>تصفية المشاريع
+        </h5>
 
-            <div class="row g-3">
-
-                <!-- Sort Filter -->
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">الفرز حسب</label>
-                    <select class="form-select">
-                        <option selected disabled>اختر طريقة الفرز</option>
-                        <option value="newest">الأحدث أولاً</option>
-                        <option value="oldest">الأقدم أولاً</option>
+        <form method="GET" action="{% url 'BrowseProjects' %}">
+            <div class="row g-3 align-items-end">
+                <!-- التخصص -->
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">التخصص</label>
+                    <select name="major" class="form-select filter-select">
+                        <option value="" {% if not request.GET.major %}selected{% endif %}>كل التخصصات</option>
+                        {% for major in majors %}
+                            <option value="{{ major.id }}" {% if request.GET.major == major.id|stringformat:"i" %}selected{% endif %}>{{ major.major_name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
-                <!-- Project Type Filter -->
-                <div class="col-md-4">
+                <!-- نوع المشروع -->
+                <div class="col-md-3">
                     <label class="form-label small text-muted">نوع المشروع</label>
-                    <select class="form-select">
-                        <option selected disabled>اختر نوع المشروع</option>
-                        <option value="graduation">مشروع تخرج</option>
-                        <option value="semester">مشروع فصلي</option>
-                        <option value="research">حلقة بحث</option>
+                    <select name="project_type" class="form-select filter-select">
+                        <option value="" {% if not request.GET.project_type %}selected{% endif %}>جميع الأنواع</option>
+                        <option value="تخرج" {% if request.GET.project_type == 'تخرج' %}selected{% endif %}>مشروع تخرج</option>
+                        <option value="فصلي" {% if request.GET.project_type == 'فصلي' %}selected{% endif %}>مشروع فصلي</option>
+                        <option value="حلقة بحث" {% if request.GET.project_type == 'حلقة بحث' %}selected{% endif %}>حلقة بحث</option>
                     </select>
                 </div>
 
-                <!-- Supervisor Filter -->
-                {% if userType == 'supervisor' %}
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">مشاريعي</label>
-                    <select class="form-select">
-                        <option selected disabled>عرض المشاريع</option>
-                        <option value="all">جميع المشاريع</option>
-                        <option value="mine">المشاريع التي أشرف عليها</option>
+                <!-- السنة -->
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">السنة</label>
+                    <select name="year" class="form-select filter-select">
+                        <option value="" {% if not request.GET.year %}selected{% endif %}>الكل</option>
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if request.GET.year == y|stringformat:"i" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                {% endif %}
 
+                <!-- الفرز -->
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">الترتيب</label>
+                    <select name="sort" class="form-select filter-select">
+                        <option value="" {% if not request.GET.sort %}selected{% endif %}>الأحدث</option>
+                        <option value="oldest" {% if request.GET.sort == 'oldest' %}selected{% endif %}>الأقدم</option>
+                        <option value="rating" {% if request.GET.sort == 'rating' %}selected{% endif %}>الأعلى تقييماً</option>
+                    </select>
+                </div>
+
+                <!-- زر البحث وإعادة التعيين -->
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
             </div>
-        </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== عرض المشاريع ==================== -->
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">جميع المشاريع</h2>
+        <span class="badge bg-primary rounded-pill px-3 py-2">{{ projects|length }} مشروع</span>
     </div>
 
-    <!-- Main Content -->
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">جميع المشاريع</h2>
-        </div>
+    <div class="row g-4">
+        {% for project in projects %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card project-card h-100 shadow-sm">
+                <div class="project-image">
+                    {% if project.projectpictures_set.all %}
+                        <img src="{{ project.projectpictures_set.all.0.image.url }}" alt="{{ project.ProjectName }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/400x220?text=لا+توجد+صورة" alt="placeholder">
+                    {% endif %}
+                    <div class="project-overlay"></div>
 
-        <!-- Projects Grid -->
-        <div class="row g-4">
-            {% for project in projects %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card project-card h-100 shadow-sm">
-                    <div class="project-image position-relative">
+                    <!-- شارات الحالة والنوع -->
+                    {% if project.status == 'accepted' %}
+                        <span class="project-badge" style="background: rgba(40,167,69,0.9); color: white;">مقبول</span>
+                    {% elif project.status == 'pending' %}
+                        <span class="project-badge" style="background: rgba(255,193,7,0.9); color: #212529;">قيد الانتظار</span>
+                    {% elif project.status == 'rejected' %}
+                        <span class="project-badge" style="background: rgba(220,53,69,0.9); color: white;">مرفوض</span>
+                    {% endif %}
 
-                        {% if project.status == 'pending' %}
-                            <span class="badge bg-warning position-absolute top-0 end-0 m-2">قيد الانتظار</span>
-                        {% elif project.status == 'accepted' %}
-                            <span class="badge bg-success position-absolute top-0 end-0 m-2">مقبول</span>
-                        {% elif project.status == 'rejected' %}
-                            <span class="badge bg-danger position-absolute top-0 end-0 m-2">مرفوض</span>
-                        {% endif %}
+                    {% if project.ProjectType %}
+                        <span class="project-type-badge">
+                            {% if project.ProjectType == 'تخرج' %}🎓 تخرج
+                            {% elif project.ProjectType == 'فصلي' %}📚 فصلي
+                            {% elif project.ProjectType == 'حلقة بحث' %}🔬 حلقة بحث
+                            {% else %}{{ project.ProjectType }}{% endif %}
+                        </span>
+                    {% endif %}
+                </div>
 
-                        {% if project.projectpictures_set.all %}
-                            <img src="{{ project.projectpictures_set.all.0.image.url }}" class="card-img-top" alt="مشروع {{ project.id }}">
-                        {% else %}
-                            <img src="https://via.placeholder.com/400x200?text=No+Image" class="card-img-top" alt="مشروع {{ project.id }}">
-                        {% endif %}
+                <div class="card-body">
+                    <h5 class="project-title">{{ project.ProjectName|truncatechars:60 }}</h5>
+
+                    <div class="project-meta">
+                        <span class="meta-item"><i class="bi bi-building"></i> {{ project.UniversityID.univ_name|truncatechars:20 }}</span>
+                        <span class="meta-item"><i class="bi bi-calendar"></i> {{ project.yearOfProject }}</span>
+                        <span class="meta-item"><i class="bi bi-tag"></i> {{ project.MajorID.major_name|truncatechars:15 }}</span>
                     </div>
 
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h5 class="card-title mb-1">{{ project.ProjectName }}</h5>
+                    <p class="project-desc">{{ project.Description|truncatechars:120 }}</p>
 
-                                {% if project.status == 'accepted' and project.supervisor %}
-                                    <p class="text-muted mb-1 small">
-                                        <i class="bi bi-person-badge me-1"></i>
-                                        تحت إشراف: <strong>{{ project.supervisor.fullname }}</strong>
-                                    </p>
-                                {% endif %}
-                            </div>
-
-                            <span class="badge bg-primary">{{ project.MajorID.major_name }}</span>
-                        </div>
-
-                        <p class="card-text text-muted mb-3">{{ project.Description|truncatechars:140 }}</p>
-
-                        <div class="d-flex justify-content-between align-items-center mt-auto">
-                            <div>
-                                <i class="bi bi-building me-1 text-muted"></i>{{ project.UniversityID.univ_name }}
-                                <span class="mx-2">•</span>
-                                <i class="bi bi-calendar me-1 text-muted"></i>{{ project.yearOfProject }}
-                            </div>
-
-                            <div class="d-flex gap-2 align-items-center">
-                                <div class="rating-stars text-warning">
-                                    {% if project.rates == none %}
-                                        0
+                    <!-- ========== قسم التقييم المعدل ========== -->
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="rating-stars">
+                            {% with rate=project.avg_rating|default:0 %}
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= rate|floatformat:0 %}
+                                        <i class="bi bi-star-fill star-filled"></i>
                                     {% else %}
-                                        {{ project.rates }}
+                                        <i class="bi bi-star star-empty"></i>
                                     {% endif %}
-                                </div>
+                                {% endfor %}
+                            {% endwith %}
+                        </div>
+                        <span class="small text-muted">({{ project.avg_rating|floatformat:1 }}/5)</span>
+                    </div>
+                    <!-- ======================================= -->
 
-                                <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-primary btn-sm">التفاصيل</a>
+                    <div class="card-footer-info">
+                        {% if project.supervisor %}
+                            <span class="supervisor-name">
+                                <i class="bi bi-person-badge"></i> {{ project.supervisor.fullname|truncatechars:20 }}
+                            </span>
+                        {% else %}
+                            <span class="supervisor-name text-muted">
+                                <i class="bi bi-person-slash"></i> غير محدد
+                            </span>
+                        {% endif %}
 
-                                {% if userType == 'supervisor' and project.supervisor and project.supervisor.email == email %}
-                                    <a href="{% url 'ProjectEvaluationForm' project.id %}" class="btn btn-primary btn-sm">تقييم</a>
-                                {% endif %}
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'projectDetails' project.id %}" class="btn-details">
+                                التفاصيل <i class="bi bi-arrow-left"></i>
+                            </a>
 
-                                {% if userType == 'student' and project.Student_id and project.Student_id.email == email and project.status == 'rejected' %}
-                                    <a href="{% url 'MyProject' project.id %}" class="btn btn-danger btn-sm">حذف وإعادة رفع</a>
-                                {% endif %}
-                            </div>
+                            {% if userType == 'supervisor' %}
+                            <a href="{% url 'ProjectEvaluationForm' project.id %}" class="btn-details">
+                                تقييم <i class="bi bi-star"></i>
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center py-5 rounded-4 border-0" style="background: #e6f3ff;">
+                <i class="bi bi-inbox display-1 d-block mb-3" style="color: #0062be;"></i>
+                <h4 class="fw-bold">لا توجد مشاريع</h4>
+                <p class="mb-0">لم نتمكن من العثور على مشاريع تطابق معايير البحث.</p>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <h5>منصة مشاريع التخرج</h5>
-                    <p class="text-muted mt-2">منصة شاملة لإدارة وعرض وتقييم مشاريع التخرج للطلاب الجامعيين، تهدف إلى تسهيل عملية عرض ومشاركة المعرفة بين الطلاب والمشرفين والمجتمع.</p>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <h5>روابط سريعة</h5>
-                    <ul class="list-unstyled mt-2">
-                        <li><a href="{% url 'index' %}" class="text-muted text-decoration-none">الرئيسية</a></li>
-                        <li><a href="{% url 'BrowseProjects' %}" class="text-muted text-decoration-none">تصفح المشاريع</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">المميزات</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <h5>الحساب</h5>
-                    <ul class="list-unstyled mt-2">
-                        {% if userType == 'student' %}
-                        <li><a href="{% url 'studentProfile' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% elif userType == 'supervisor' %}
-                        <li><a href="{% url 'supervisorDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% elif userType == 'admin' %}
-                        <li><a href="{% url 'AdminDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% else %}
-                        <li><a href="{% url 'login' %}" class="text-muted text-decoration-none">إنشاء حساب / تسجيل الدخول</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <h5>ابقَ على اتصال</h5>
-                    <p class="text-muted mt-2">اشترك في نشرتنا الإخبارية للحصول على أحدث المشاريع والتحديثات</p>
-                    <form class="d-flex mt-3">
-                        <input type="email" class="form-control me-2" placeholder="أدخل بريدك الإلكتروني">
-                        <button type="submit" class="btn btn-primary">اشتراك</button>
-                    </form>
-                    <div class="mt-3">
-                        <a href="#" class="text-muted me-3"><i class="bi bi-facebook fs-4"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="bi bi-twitter fs-4"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="bi bi-linkedin fs-4"></i></a>
-                        <a href="#" class="text-muted"><i class="bi bi-instagram fs-4"></i></a>
-                    </div>
-                </div>
+    <!-- Pagination إذا كان موجودًا -->
+    {% if projects.has_other_pages %}
+    <nav class="mt-5" aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if projects.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ projects.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+
+            {% for i in projects.paginator.page_range %}
+                {% if projects.number == i %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if projects.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ projects.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+<!-- ==================== Footer ==================== -->
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <h5>منصة مشاريع التخرج</h5>
+                <p class="text-muted mt-2">منصة شاملة لإدارة وعرض وتقييم مشاريع التخرج للطلاب الجامعيين، تهدف إلى تسهيل عملية عرض ومشاركة المعرفة بين الطلاب والمشرفين والمجتمع.</p>
             </div>
-            <div class="text-center mt-4 pt-3 border-top">
-                <p class="mb-0 text-muted">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
+            <div class="col-md-2 mb-3">
+                <h5>روابط سريعة</h5>
+                <ul class="list-unstyled mt-2">
+                    <li><a href="{% url 'index' %}" class="text-muted text-decoration-none">الرئيسية</a></li>
+                    <li><a href="{% url 'BrowseProjects' %}" class="text-muted text-decoration-none">تصفح المشاريع</a></li>
+                    <li><a href="#" class="text-muted text-decoration-none">المميزات</a></li>
+                </ul>
+            </div>
+            <div class="col-md-2 mb-3">
+                <h5>الحساب</h5>
+                <ul class="list-unstyled mt-2">
+                    {% if userType == 'student' %}
+                    <li><a href="{% url 'studentProfile' %}" class="text-muted text-decoration-none">حسابي</a></li>
+                    {% elif userType == 'supervisor' %}
+                    <li><a href="{% url 'supervisorDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
+                    {% elif userType == 'admin' %}
+                    <li><a href="{% url 'AdminDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
+                    {% else %}
+                    <li><a href="{% url 'login' %}" class="text-muted text-decoration-none">إنشاء حساب / تسجيل الدخول</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="col-md-4 mb-3">
+                <h5>ابقَ على اتصال</h5>
+                <p class="text-muted mt-2">اشترك في نشرتنا الإخبارية للحصول على أحدث المشاريع والتحديثات</p>
+                <form class="d-flex mt-3">
+                    <input type="email" class="form-control me-2" placeholder="أدخل بريدك الإلكتروني">
+                    <button type="submit" class="btn btn-primary">اشتراك</button>
+                </form>
+                <div class="mt-3">
+                    <a href="#" class="text-muted me-3"><i class="bi bi-facebook fs-4"></i></a>
+                    <a href="#" class="text-muted me-3"><i class="bi bi-twitter fs-4"></i></a>
+                    <a href="#" class="text-muted me-3"><i class="bi bi-linkedin fs-4"></i></a>
+                    <a href="#" class="text-muted"><i class="bi bi-instagram fs-4"></i></a>
+                </div>
             </div>
         </div>
-    </footer>
+        <div class="text-center mt-4 pt-3 border-top">
+            <p class="mb-0 text-muted">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</footer>
+
 {% endblock content %}
