@@ -1,530 +1,294 @@
-{% extends "base.html" %}
-{% load static %}
-{% block content %}
-
+﻿{% extends "base.html" %}
+{% block title %}متابعة المشروع{% endblock %}
+{% block extra_head %}
 <style>
-  body {
-    background-color: #f8f9fa;
-  }
-
-  .navbar {
-    background-color: #0062be;
-  }
-
-  .project-form {
-    background: white;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-    margin-top: 2rem;
-  }
-
-  .form-section {
-    margin-bottom: 2rem;
-  }
-
-  .form-section h4 {
-    margin-bottom: 1rem;
-    color: #0062be;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 0.5rem;
-  }
-
-  /* ستايل قسم البيانات الأساسية القابل للطي */
-  .collapsible-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    margin-bottom: 1rem;
-    color: #0062be;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 0.5rem;
-  }
-  
-  .collapsible-header h4 {
-    margin-bottom: 0;
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  
-  .toggle-btn {
-    background: none;
-    border: none;
-    color: #0062be;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0 5px;
-    transition: transform 0.3s ease;
-  }
-  
-  .toggle-btn:hover {
-    transform: scale(1.1);
-  }
-  
-  .collapsible-content {
-    display: none;
-  }
-  
-  .collapsible-content.show {
-    display: block;
-  }
-
-  .readonly-box {
-    background-color: #f1f9ff;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .upload-box {
-    border: 2px dashed #ced4da;
-    border-radius: 0.75rem;
-    padding: 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.3s ease;
-  }
-  .upload-box:hover {
-    border-color: #0062be;
-    background-color: #f1f9ff;
-  }
-  .upload-icon {
-    font-size: 3rem;
-    color: #6c757d;
-    margin-bottom: 1rem;
-  }
-  .preview-images {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-  .preview-images img {
-    max-width: 150px;
-    max-height: 150px;
-    border-radius: 0.5rem;
-    object-fit: cover;
-    border: 2px solid #dee2e6;
-  }
-  .video-preview {
-    width: 100%;
-    max-height: 300px;
-    border-radius: 0.75rem;
-    border: 2px solid #dee2e6;
-  }
-  .video-card {
-    max-height: 320px;
-    overflow: hidden;
-    border-radius: 8px;
-    border: 2px solid #dee2e6;
-    padding: 8px;
-  }
-  @media (max-width: 768px) {
-    .preview-images {
-      flex-direction: column;
-      align-items: center;
+    .step-card, .panel-card, .message-bubble, .preview-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.4rem;
+        box-shadow: 0 16px 40px rgba(17,74,125,0.08);
     }
-  }
+    .step-card { padding: 1.15rem; height: 100%; }
+    .step-card.locked { opacity: 0.72; border-style: dashed; background: #f9fbfd; }
+    .step-card.active { border-color: #0f6cbd; }
+    .upload-zone {
+        border: 2px dashed #bed3e7;
+        background: linear-gradient(180deg,#fafdff,#f3f9ff);
+        border-radius: 1.2rem;
+        padding: 1.4rem;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+    .upload-zone:hover { border-color: #0f6cbd; transform: translateY(-2px); }
+    .upload-zone input { display: none; }
+    .upload-zone i { font-size: 2rem; color: #0f6cbd; display: block; margin-bottom: 0.6rem; }
+    .message-list { display: grid; gap: 1rem; }
+    .message-bubble { padding: 1rem 1.1rem; }
+    .message-bubble.student { background: #eef6ff; border-color: #bfd7ef; }
+    .message-bubble.supervisor { background: #fff7e8; border-color: #f2d7a0; }
+    .preview-list { display: grid; gap: 0.75rem; }
+    .preview-card { padding: 0.9rem 1rem; }
+    .thumb-grid img { width: 100%; height: 170px; object-fit: cover; border-radius: 1rem; }
+    .stage-pill {
+        display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem;
+        border-radius: 999px; background: #eef6ff; color: #114a7d; font-weight: 700;
+    }
 </style>
-
-<nav class="navbar navbar-expand-lg navbar-dark">
-  <div class="container">
-    <a class="navbar-brand" href="#">صفحة إتمام بيانات المشروع</a>
-  </div>
-</nav>
-
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-lg-10">
-      <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="project-form">
-          <h2 class="text-center mb-4">إتمام بيانات المشروع</h2>
-
-          <!-- بطاقة معلومات المشروع الأساسية -->
-<div class="card p-4 mb-4">
-  <h3>
-    {% if project.ProjectName %}
-      {{ project.ProjectName }}
-    {% elif project.title_ar %}
-      {{ project.title_ar }}
-    {% else %}
-      مشروع بدون اسم
-    {% endif %}
-  </h3>
-  <div class="mt-2">
-    <span class="text-muted">القسم:</span> 
-    {% if project.MajorID %}
-      {{ project.MajorID.major_name }}
-    {% elif project.department %}
-      {{ project.department }}
-    {% else %}
-      غير محدد
-    {% endif %} |
-    <span class="text-muted ms-2">السنة:</span> 
-    {% if project.yearOfProject %}
-      {{ project.yearOfProject }}
-    {% elif project.projectYear %}
-      {{ project.projectYear }}
-    {% else %}
-      غير محدد
-    {% endif %} |
-    <span class="text-muted ms-2">النوع:</span> 
-    {% if project.ProjectType %}
-      {{ project.ProjectType }}
-    {% elif project.projectType %}
-      {{ project.projectType }}
-    {% else %}
-      غير محدد
-    {% endif %}
-  </div>
-  <div class="mt-3">
-    <strong>وصف مختصر:</strong>
-    <div>
-      {% if project.Description %}
-        {{ project.Description|linebreaksbr }}
-      {% elif project.idea_summary %}
-        {{ project.idea_summary|linebreaksbr }}
-      {% elif project.Description|default:project.idea_summary %}
-        {{ project.Description|default:project.idea_summary|linebreaksbr }}
-      {% else %}
-        -
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-          <!-- البيانات الأساسية - قسم قابل للطي -->
-          <!-- البيانات الأساسية - قسم قابل للطي -->
-<div class="form-section">
-  <div class="collapsible-header" onclick="toggleBasicData()">
-    <h4>البيانات الأساسية</h4>
-    <span class="toggle-btn" id="toggleIcon">▼</span>
-  </div>
-
-  <div class="collapsible-content" id="basicDataContent">
-    <div class="readonly-box">
-      <strong>القسم:</strong> 
-      {% if project.department %}
-        {{ project.department }}
-      {% elif project.MajorID %}
-        {{ project.MajorID.major_name }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>اسم المشروع (عربي):</strong> 
-      {% if project.title_ar %}
-        {{ project.title_ar }}
-      {% elif project.ProjectName %}
-        {{ project.ProjectName }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>اسم المشروع (إنجليزي):</strong> 
-      {% if project.title_en %}
-        {{ project.title_en }}
-      {% elif project.ProjectName %}
-        {{ project.ProjectName }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>نوع المشروع:</strong> 
-      {% if project.projectType %}
-        {{ project.projectType }}
-      {% elif project.ProjectType %}
-        {{ project.ProjectType }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>السنة:</strong> 
-      {% if project.projectYear %}
-        {{ project.projectYear }}
-      {% elif project.yearOfProject %}
-        {{ project.yearOfProject }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>ملخص الفكرة:</strong> 
-      {% if project.idea_summary %}
-        {{ project.idea_summary }}
-      {% elif project.Description %}
-        {{ project.Description }}
-      {% else %}
-        لا يوجد ملخص
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>ما سيتم إنجازه:</strong> 
-      {% if project.what_will_be_done %}
-        {{ project.what_will_be_done }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>مراحل المشروع:</strong> 
-      {% if project.project_stages %}
-        {{ project.project_stages }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>الرافع (مالك المشروع):</strong>
-      {% if project.Student_id %}
-        {{ project.Student_id.fullname }}
-      {% else %}
-        غير محدد
-      {% endif %}
-      <br>
-      <strong class="mt-2 d-block">زملاء المشروع:</strong>
-      {% with collab_list=project.collaborators.all %}
-        {% if collab_list %}
-          {% for s in collab_list %}
-            {{ s.fullname }}{% if not forloop.last %}, {% endif %}
-          {% endfor %}
-        {% else %}
-          لا يوجد
-        {% endif %}
-      {% endwith %}
-    </div>
-
-    <div class="readonly-box">
-      <strong>المشرف:</strong> 
-      {% if project.supervisor %}
-        {{ project.supervisor.fullname }}
-      {% else %}
-        غير محدد
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-          <!-- وسائط المشروع الحالية -->
-          <div class="form-section">
-            <h4>وسائط المشروع الحالية</h4>
-            
-            {% if pdf %}
-              <div class="mb-2">
-                <strong>ملف PDF:</strong>
-                <a href="{{ pdf.url }}" target="_blank">فتح ملف المشروع (PDF)</a>
-              </div>
-            {% endif %}
-
-            {% if videos and videos.exists %}
-              <div class="mb-3">
-                <strong>فيديوهات:</strong>
-                <div class="d-flex flex-wrap gap-3 mt-2">
-                  {% for v in videos %}
-                    <div class="video-card">
-                      <video controls style="max-width:300px; max-height:250px;">
-                        <source src="{{ v.vedio.url }}" />
-                        متصفحك لا يدعم تشغيل الفيديو
-                      </video>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-
-            {% if pics and pics.exists %}
-              <div>
-                <strong>صور المشروع:</strong>
-                <div class="preview-images mt-2">
-                  {% for p in pics %}
-                    <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="pic"></a>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- رفع الوسائط الجديدة -->
-          <div class="form-section">
-            <h4>رفع ملفات ووسائط جديدة</h4>
-
-            <!-- Video Upload -->
-            <div class="mb-3">
-              <label class="form-label">فيديو العرض التقديمي</label>
-              <div
-                class="upload-box"
-                onclick="document.getElementById('videoInput').click()"
-              >
-                <i class="bi bi-play-circle upload-icon"></i>
-                <p>انقر لتحميل فيديو العرض التقديمي (MP4, AVI)</p>
-                <small class="text-muted">الحجم الأقصى: 1GB</small>
-                <input type="file" id="videoInput" name="videoFile" hidden />
-              </div>
-              <div id="videoPreview" class="mt-2"></div>
-            </div>
-
-            <!-- Image Upload -->
-            <div class="mb-3">
-              <label class="form-label">صور المشروع</label>
-              <div
-                class="upload-box"
-                onclick="document.getElementById('imageInput').click()"
-              >
-                <i class="bi bi-images upload-icon"></i>
-                <p>انقر لتحميل صور المشروع (PNG, JPG)</p>
-                <small class="text-muted">الحجم الأقصى: 10MB لكل صورة</small>
-                <input
-                  type="file"
-                  id="imageInput"
-                  name="ImageFile"
-                  multiple
-                  hidden
-                />
-              </div>
-              <div id="imagePreview" class="preview-images"></div>
-            </div>
-
-            <!-- PDF Upload -->
-            <div class="mb-3">
-              <label class="form-label">ملف PDF للمشروع</label>
-              <div
-                class="upload-box"
-                onclick="document.getElementById('pdfInput').click()"
-              >
-                <i class="bi bi-file-earmark-pdf upload-icon"></i>
-                <p>انقر لتحميل ملف PDF للمشروع</p>
-                <small class="text-muted">الحجم الأقصى: 20MB</small>
-                <input type="file" id="pdfInput" name="PDFFILE" hidden />
-              </div>
-              <div id="pdfPreview" class="mt-2"></div>
-            </div>
-          </div>
-
-          <!-- ================= Conversation & File Updates Section ================= -->
-          <div class="form-section">
-            <h4>مراسلات وتعديلات المشروع</h4>
-
-            <!-- Upload New Update -->
-            <div class="card p-3 mb-4 shadow-sm">
-              <h6 class="mb-3">إضافة تحديث جديد</h6>
-
-              <div class="mb-3">
-                <label class="form-label">رسالة مرفقة مع الملف</label>
-                <textarea
-                  name="update_message_text"
-                  class="form-control"
-                  rows="3"
-                  placeholder="اكتب ملاحظاتك أو التعديلات المطلوبة هنا..."></textarea>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">رفع ملف (PDF أو Word فقط)</label>
-                <input
-                  type="file"
-                  name="update_file"
-                  class="form-control"
-                  accept=".pdf,.doc,.docx" />
-                <small class="text-muted">الصيغ المسموحة: PDF, DOC, DOCX</small>
-              </div>
-
-              <!-- زر الإرسال: يصبح submit باسم send_update -->
-              <button type="submit" name="send_update" class="btn btn-primary">رفع التحديث</button>
-            </div>
-
-            <!-- Conversation History -->
-            <div class="card p-3 shadow-sm">
-              <h6 class="mb-4">سجل التحديثات (من الأقدم للأحدث)</h6>
-
-              {% if messages %}
-                {% for msg in messages %}
-                  <div class="border rounded p-3 mb-3 {% if forloop.last %}bg-light{% endif %}">
-                    <div class="d-flex justify-content-between">
-                      <strong class="{% if msg.sender_supervisor %}text-success{% else %}text-primary{% endif %}">
-                        {% if msg.sender_supervisor %}
-                          {{ msg.sender_supervisor.fullname }} (مشرف)
-                        {% elif msg.sender_student %}
-                          {{ msg.sender_student.fullname }} (طالب)
-                        {% else %}
-                          {{ msg.sender_name }}
-                        {% endif %}
-                      </strong>
-                      <small class="text-muted">{{ msg.created_at|date:"Y-m-d H:i" }}</small>
-                    </div>
-
-                    {% if msg.text %}
-                      <p class="mt-2 mb-2">{{ msg.text|linebreaksbr }}</p>
-                    {% endif %}
-
-                    {% if msg.attachment %}
-                      <a href="{{ msg.attachment.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                        فتح الملف
-                      </a>
-                    {% endif %}
-                  </div>
-                {% endfor %}
-              {% else %}
-                <p class="text-muted">لا توجد تحديثات بعد.</p>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- أزرار أسفل الصفحة -->
-          <div class="text-center">
-            <input type="submit" name="save_data" class="btn btn-primary px-5" value="حفظ البيانات" />
-            {% if user_type == 'supervisor' and project.supervisor and project.supervisor.email == email %}
-              <button type="submit" name="finish_project" class="btn btn-success px-4 ms-2"
-                      onclick="return confirm('هل أنت متأكد من إنهاء المشروع نهائياً؟')">
-                إنهاء المشروع بالكامل
-              </button>
-            {% endif %}
-            <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary ms-2">العودة إلى مشاريعي</a>
-          </div>
-
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="section-title mb-2">متابعة المشروع</h1>
+            <p class="section-subtitle mb-0">الخطوات مرتبة بوضوح: مراسلات وتعديلات، ثم فتح التسليم النهائي، ثم إنهاء المشروع بالكامل.</p>
         </div>
-      </form>
+        <div class="page-actions">
+            <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary">تفاصيل المشروع</a>
+            {% if user_type == 'student' %}
+                <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">مشاريعي</a>
+            {% else %}
+                <a href="{% url 'supervisor_projects' %}" class="btn btn-outline-secondary">المشاريع الإشرافية</a>
+            {% endif %}
+        </div>
     </div>
-  </div>
+
+    <div class="surface-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h3 class="mb-2">{{ project.ProjectName }}</h3>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for student in participant_students %}
+                        <span class="stage-pill"><i class="bi bi-person"></i>{{ student.fullname }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="text-start">
+                {% if project.is_completed %}
+                    <span class="badge bg-dark fs-6">المشروع مكتمل ومغلق</span>
+                {% elif can_upload_final_data %}
+                    <span class="badge bg-success fs-6">التسليم النهائي مفتوح</span>
+                {% else %}
+                    <span class="badge text-bg-primary fs-6">مرحلة المراسلات والتعديلات</span>
+                {% endif %}
+                {% if show_final_score %}
+                    <div class="mt-2 badge bg-success fs-6">الدرجة النهائية: {{ project.degree|floatformat:1 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="step-card active"><h5>1. تبادل الملاحظات</h5><p class="mb-0 text-muted">ترسل الرسائل والمرفقات بصيغة Word فقط، مع إبراز الملف المختار قبل الإرسال.</p></div></div>
+        <div class="col-md-4"><div class="step-card {% if can_upload_final_data %}active{% else %}locked{% endif %}"><h5>2. التسليم النهائي</h5><p class="mb-0 text-muted">يفتح فقط بعد اعتماد المشرف انتهاء التعديلات. قبل ذلك تبقى هذه المنطقة مقفولة.</p></div></div>
+        <div class="col-md-4"><div class="step-card {% if project.is_completed %}active{% else %}locked{% endif %}"><h5>3. الإنهاء والنشر</h5><p class="mb-0 text-muted">بعد الإنهاء تتوقف الرسائل والرفع نهائياً، ويصبح المشروع للعرض فقط.</p></div></div>
+    </div>
+
+    {% if project.is_completed %}
+        <div class="alert alert-warning">المشروع مكتمل الآن. لا يمكن إرسال رسائل جديدة أو رفع ملفات إضافية، ويمكن للطلاب المشاركين عرض السجل والملفات فقط.</div>
+    {% elif can_upload_final_data %}
+        <div class="alert alert-success">اعتمد المشرف انتهاء التعديلات. أصبح بإمكان الطلاب المشاركين رفع ملفات التسليم النهائي الآن.</div>
+    {% else %}
+        <div class="alert alert-info">مرحلة التسليم النهائي ما تزال مقفولة حتى يعتمد المشرف انتهاء التعديلات.</div>
+    {% endif %}
+
+    {% if can_unlock_final_stage %}
+    <div class="panel-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 class="h5 mb-1">فتح مرحلة التسليم النهائي</h4>
+                <p class="text-muted mb-0">هذه الخطوة مهمة، لذلك أضفنا تأكيداً قبل فتحها حتى لا يتم فتحها بالخطأ.</p>
+            </div>
+            <form method="POST" data-confirm-message="هل أنت متأكد من اعتماد انتهاء التعديلات وفتح التسليم النهائي للطلاب؟">
+                {% csrf_token %}
+                <button type="submit" name="approve_edits" class="btn btn-primary">اعتماد وفتح التسليم النهائي</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="panel-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h4 class="h5 mb-0">الرسائل والتعديلات</h4>
+                    <span class="badge {% if can_send_updates %}text-bg-primary{% else %}text-bg-secondary{% endif %}">{% if can_send_updates %}مفتوحة{% else %}مقفولة{% endif %}</span>
+                </div>
+                <form method="POST" enctype="multipart/form-data" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">نص الرسالة</label>
+                        <textarea name="update_message_text" rows="4" class="form-control" placeholder="اكتب المطلوب أو الرد هنا" {% if not can_send_updates %}disabled{% endif %}></textarea>
+                    </div>
+                    <label class="upload-zone mb-3" for="messageWordFile">
+                        <i class="bi bi-file-earmark-word"></i>
+                        <strong>مرفق الرسالة</strong>
+                        <div class="text-muted small mt-1">المسموح فقط: Word بصيغتي DOC و DOCX</div>
+                        <input id="messageWordFile" type="file" name="update_file" accept=".doc,.docx" {% if not can_send_updates %}disabled{% endif %}>
+                    </label>
+                    <div id="messageFilePreview" class="preview-list mb-3"></div>
+                    <button type="submit" name="send_update" class="btn btn-primary" {% if not can_send_updates %}disabled{% endif %}>إرسال الرسالة</button>
+                </form>
+
+                <div class="message-list">
+                    {% for msg in messages %}
+                        <div class="message-bubble {% if msg.sender_supervisor %}supervisor{% else %}student{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                <strong>{% if msg.sender_supervisor %}{{ msg.sender_supervisor.fullname }} - مشرف{% else %}{{ msg.sender_student.fullname }} - طالب{% endif %}</strong>
+                                <small class="text-muted">{{ msg.created_at|date:"Y-m-d H:i" }}</small>
+                            </div>
+                            {% if msg.text %}<div class="mb-2">{{ msg.text|linebreaksbr }}</div>{% endif %}
+                            {% if msg.attachment %}<a href="{{ msg.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-dark">فتح المرفق</a>{% endif %}
+                        </div>
+                    {% empty %}
+                        <div class="text-muted">لا توجد رسائل بعد.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="panel-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h4 class="h5 mb-0">التسليم النهائي</h4>
+                    <span class="badge {% if can_upload_final_data %}text-bg-success{% else %}text-bg-secondary{% endif %}">{% if can_upload_final_data %}مفتوح{% else %}مقفول{% endif %}</span>
+                </div>
+                {% if not can_upload_final_data %}
+                    <div class="alert alert-secondary">منطقة الرفع النهائي مقفولة حالياً. يتم فتحها فقط بعد موافقة المشرف على انتهاء التعديلات.</div>
+                {% endif %}
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ملف Word النهائي</label>
+                            <label class="upload-zone" for="finalWordFile">
+                                <i class="bi bi-file-earmark-word"></i>
+                                <strong>اختر ملف Word</strong>
+                                <div class="text-muted small mt-1">DOC أو DOCX</div>
+                                <input id="finalWordFile" type="file" name="finalWordFile" accept=".doc,.docx" {% if not can_upload_final_data %}disabled{% endif %}>
+                            </label>
+                            <div id="finalWordPreview" class="preview-list mt-2"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ملف ZIP للكود</label>
+                            <label class="upload-zone" for="finalZipFile">
+                                <i class="bi bi-file-earmark-zip"></i>
+                                <strong>اختر ملف ZIP</strong>
+                                <div class="text-muted small mt-1">يحتوي على الكود والمشروع البرمجي</div>
+                                <input id="finalZipFile" type="file" name="finalZipFile" accept=".zip" {% if not can_upload_final_data %}disabled{% endif %}>
+                            </label>
+                            <div id="finalZipPreview" class="preview-list mt-2"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">فيديو المشروع</label>
+                            <label class="upload-zone" for="projectVideo">
+                                <i class="bi bi-camera-video"></i>
+                                <strong>اختر ملف فيديو</strong>
+                                <div class="text-muted small mt-1">MP4 أو WebM أو MOV أو AVI أو MKV</div>
+                                <input id="projectVideo" type="file" name="videoFile" accept="video/*" {% if not can_upload_final_data %}disabled{% endif %}>
+                            </label>
+                            <div id="videoPreview" class="preview-list mt-2"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">صور المشروع</label>
+                            <label class="upload-zone" for="projectImages">
+                                <i class="bi bi-images"></i>
+                                <strong>اختر صورة أو أكثر</strong>
+                                <div class="text-muted small mt-1">يمكنك رفع عدة صور دفعة واحدة</div>
+                                <input id="projectImages" type="file" name="ImageFile" accept="image/*" multiple {% if not can_upload_final_data %}disabled{% endif %}>
+                            </label>
+                            <div id="imagesPreview" class="row g-2 mt-1"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap mt-4">
+                        <button type="submit" name="save_data" class="btn btn-success" {% if not can_upload_final_data %}disabled{% endif %}>حفظ التسليم النهائي</button>
+                        {% if user_type == 'supervisor' %}
+                            <button type="submit" name="finish_project" class="btn btn-dark" data-confirm-message="هل أنت متأكد من إنهاء المشروع بالكامل؟ بعد ذلك لن يتمكن أحد من إرسال رسائل أو رفع ملفات جديدة." {% if project.is_completed %}disabled{% endif %}>إنهاء المشروع بالكامل</button>
+                        {% endif %}
+                    </div>
+                </form>
+
+                <hr>
+                <h5 class="mb-3">الملفات الحالية</h5>
+                <div class="preview-list mb-3">
+                    {% if final_word_file %}<div class="preview-card"><strong>ملف Word النهائي الحالي:</strong> <a href="{{ final_word_file.url }}" target="_blank">{{ final_word_file.name|cut:'final_docs/' }}</a></div>{% endif %}
+                    {% if final_zip_file %}<div class="preview-card"><strong>ملف ZIP الحالي:</strong> <a href="{{ final_zip_file.url }}" target="_blank">{{ final_zip_file.name|cut:'final_code/' }}</a></div>{% endif %}
+                    {% if pdf %}<div class="preview-card"><strong>الملف الرئيسي الحالي:</strong> <a href="{{ pdf.url }}" target="_blank">{{ pdf.name }}</a></div>{% endif %}
+                </div>
+                {% if videos %}
+                    <div class="preview-list mb-3">
+                        {% for media_item in videos %}
+                            {% if media_item.vedio %}
+                                <div class="preview-card">
+                                    <div class="mb-2"><strong>فيديو {{ forloop.counter }}</strong></div>
+                                    <video controls class="w-100 rounded-4"><source src="{{ media_item.vedio.url }}"></video>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="row g-3 thumb-grid">
+                    {% for pic in pics %}
+                        <div class="col-md-6"><img src="{{ pic.image.url }}" alt="صورة المشروع"></div>
+                    {% empty %}
+                        <div class="col-12 text-muted">لا توجد صور نهائية مرفوعة بعد.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
+{% endblock %}
+{% block extra_scripts %}
 <script>
-  // دالة لطي وعرض البيانات الأساسية
-  function toggleBasicData() {
-    const content = document.getElementById('basicDataContent');
-    const icon = document.getElementById('toggleIcon');
-    
-    if (content.classList.contains('show')) {
-      content.classList.remove('show');
-      icon.textContent = '▼';
-    } else {
-      content.classList.add('show');
-      icon.textContent = '▲';
+    function renderFileName(inputId, outputId) {
+        const input = document.getElementById(inputId);
+        const output = document.getElementById(outputId);
+        if (!input || !output) return;
+        input.addEventListener('change', function () {
+            output.innerHTML = '';
+            Array.from(this.files || []).forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'preview-card';
+                item.textContent = file.name;
+                output.appendChild(item);
+            });
+        });
     }
-  }
 
-  // تنفيذ بعد تحميل الصفحة لجعل القسم مطويًا افتراضيًا
-  document.addEventListener('DOMContentLoaded', function() {
-    const content = document.getElementById('basicDataContent');
-    const icon = document.getElementById('toggleIcon');
-    
-    // التأكد من أن القسم مطوي في البداية
-    content.classList.remove('show');
-    icon.textContent = '▼';
-  });
+    function renderVideoPreview() {
+        const input = document.getElementById('projectVideo');
+        const output = document.getElementById('videoPreview');
+        if (!input || !output) return;
+        input.addEventListener('change', function () {
+            output.innerHTML = '';
+            const file = this.files && this.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            output.innerHTML = '<div class="preview-card"><div class="mb-2">' + file.name + '</div><video controls class="w-100 rounded-4"><source src="' + url + '"></video></div>';
+        });
+    }
+
+    function renderImagePreviews() {
+        const input = document.getElementById('projectImages');
+        const output = document.getElementById('imagesPreview');
+        if (!input || !output) return;
+        input.addEventListener('change', function () {
+            output.innerHTML = '';
+            Array.from(this.files || []).forEach(file => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6';
+                col.innerHTML = '<div class="preview-card h-100"><div class="mb-2">' + file.name + '</div><img class="img-fluid rounded-4" src="' + URL.createObjectURL(file) + '" alt="preview"></div>';
+                output.appendChild(col);
+            });
+        });
+    }
+
+    renderFileName('messageWordFile', 'messageFilePreview');
+    renderFileName('finalWordFile', 'finalWordPreview');
+    renderFileName('finalZipFile', 'finalZipPreview');
+    renderVideoPreview();
+    renderImagePreviews();
 </script>
+{% endblock %}
 
-<script src="{% static 'js/main.js' %}"></script>
-{% endblock content %}

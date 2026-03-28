@@ -1,349 +1,91 @@
-{% load static %}
-{% include "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}طلبات الطلاب{% endblock %}
+{% block extra_head %}
+<style>
+    .request-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.4rem;
+        box-shadow: 0 16px 40px rgba(17,74,125,0.08);
+        height: 100%;
+    }
+    .request-head {
+        background: linear-gradient(135deg,#f8fbff,#eef6ff);
+        border-bottom: 1px solid #dbe6f2;
+        padding: 1rem 1.25rem;
+    }
+    .request-body { padding: 1.25rem; }
+</style>
+{% endblock %}
 {% block content %}
-
-    <link rel="stylesheet" href="{%static 'css/style.css'%}">
-</head>
-<body>
-   <!-- Navbar -->
-   <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-
-        <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
-            <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-            <span>منصة مشاريع التخرج</span>
-        </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'index' %}">الرئيسية</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a>
-                </li>
-
-                {# ===== زر طلبات الطلاب للمشرف فقط ===== #}
-                {% if userType == 'supervisor' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'supervisor_requests' %}">
-                        طلبات الطلاب
-                    </a>
-                </li>
-                {% endif %}
-
-                {% if email == none %}
-                <li class="nav-item">
-                    <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}">
-                        تسجيل الدخول / إنشاء حساب
-                    </a>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    {% if userType == 'student' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'studentProfile' %}">
-                            مرحبا, {{ fullname }} 
-                        </a>
-                    {% elif userType == 'supervisor' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'supervisorDashboard' %}">
-                             لوحة تحكم  {{ fullname }}
-                        </a>
-                    {% elif userType == 'admin' %}
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{% url 'AdminDashboard' %}">
-                           مرحبا,  {{ fullname }} 
-                        </a>
-                    {% endif %}
-                </li>
-                {% endif %}
-
-            </ul>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="section-title mb-2">طلبات الطلاب</h1>
+            <p class="section-subtitle mb-0">البطاقات تعرض ملخصاً واضحاً للطلب والطلاب المشاركين، مع أزرار قرار مباشرة وواضحة.</p>
+        </div>
+        <div class="page-actions">
+            <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-secondary">لوحة المشرف</a>
+            <a href="{% url 'supervisor_projects' %}" class="btn btn-outline-secondary">المشاريع الإشرافية</a>
         </div>
     </div>
-</nav>
 
-    <!-- Main Content -->
-    <div class="container-fluid h-100">
-        <div class="row h-100">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar p-4">
-                <div class="position-sticky">
-                    <h5 class="mb-3">القائمة</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="{% url 'supervisorDashboard' %}">
-                                <i class="bi bi-person-lines-fill me-2"></i>
-                                لوحة التحكم
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="{% url 'supervisor_projects' %}">
-                                <i class="bi bi-journal-text me-2"></i>
-                                المشاريع التي اشرف عليها 
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link active" href="{% url 'student_requests' %}">
-                                <i class="bi bi-people me-2"></i>
-                                طلبات الطلاب
-                            </a>
-                        </li>
-                    </ul>
-                    
-                    <hr class="my-4">
-                    
-                    <h6 class="text-muted">الإحصائيات</h6>
-                   <div class="mt-3">
-    <p class="mb-1">الطلبات الجديدة: <strong>{{ pending_projects_count }}</strong></p>
-    <p class="mb-1">الطلبات المقبولة: <strong>{{ accepted_projects_count }}</strong></p>
-    <p class="mb-0">الطلبات المرفوضة: <strong>{{ rejected_projects_count }}</strong></p>
-</div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="surface-card p-3"><div class="text-muted">طلبات جديدة</div><strong class="fs-3 text-warning">{{ pending_projects_count }}</strong></div></div>
+        <div class="col-md-4"><div class="surface-card p-3"><div class="text-muted">مشاريع جارية</div><strong class="fs-3 text-primary">{{ accepted_projects_count }}</strong></div></div>
+        <div class="col-md-4"><div class="surface-card p-3"><div class="text-muted">طلبات مرفوضة</div><strong class="fs-3 text-danger">{{ rejected_projects_count }}</strong></div></div>
+    </div>
 
-                </div>
-            </nav>
-
-            <!-- Main Content Area -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="d-flex align-items-center my-2 flex-column">
-                        <h2>طلبات الطلاب</h2>
-                        <h4>الطلبات المعلقة للموافقة:</h4>
-                    </div>
-                    
-                </div>
-                
-                <!-- Requests Grid -->
-              <!-- Requests Grid -->
-<div class="row g-4 h-100">
-    {% if projects %}
+    <div class="row g-4">
         {% for project in projects %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card project-card h-100 shadow-sm">
-                <div class="project-image position-relative">
-    {% if project.projectpictures_set.all %}
-        <img 
-            src="{{ project.projectpictures_set.all.0.image.url }}"
-            alt="{{ project.ProjectName }}"
-            class="card-img-top"
-        >
-    {% else %}
-        <img 
-            src="{% static 'images/no-image.png' %}"
-            alt="بدون صورة"
-            class="card-img-top"
-        >
-    {% endif %}
-</div>
-
-
-
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title mb-2">{{ project.ProjectName }}</h5>
-                    <p class="card-text text-muted mb-3">
-                        {{ project.Description|default:"لا يوجد وصف" |truncatechars:120 }}
-                    </p>
-
-                    <div class="student-info mb-3">
-                        <p class="mb-1"><strong>الرافع:</strong> {{ project.Student_id.fullname }}</p>
-                        <p class="mb-1"><strong>زملاء المشروع:</strong>
-                            {% for s in project.collaborators.all %}
-                                {{ s.fullname }}{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                لا يوجد
-                            {% endfor %}
-                        </p>
-                        <p class="mb-1"><strong>التاريخ:</strong> {{ project.requested_at|date:"Y-m-d" }}</p>
+            <div class="col-lg-6">
+                <div class="request-card overflow-hidden">
+                    <div class="request-head d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <div>
+                            <h4 class="h5 mb-1">{{ project.ProjectName }}</h4>
+                            <small class="text-muted">أُرسل في {{ project.requested_at|date:"Y-m-d H:i" }}</small>
+                        </div>
+                        <span class="badge {% if project.status == 'pending' %}text-bg-warning{% else %}text-bg-danger{% endif %}">{% if project.status == 'pending' %}طلب جديد{% else %}مرفوض سابقاً{% endif %}</span>
                     </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-auto">
-                        {% if project.status == "pending" %}
-                            <span class="badge bg-warning">قيد الانتظار</span>
-                        {% elif project.status == "accepted" %}
-                            <span class="badge bg-success">مقبول</span>
-                        {% elif project.status == "rejected" %}
-                            <span class="badge bg-danger">مرفوض</span>
-                        {% else %}
-                            <span class="badge bg-secondary">{{ project.status }}</span>
-                        {% endif %}
-
-                        <div class="btn-group">
-
-    {% if project.status == "pending" %}
-        <!-- Pending: Accept + Reject -->
-        <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="accept">
-            <button type="submit" class="btn btn-success btn-sm">
-                قبول
-            </button>
-        </form>
-
-        <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline; margin-left:4px;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="reject">
-            <button type="submit" class="btn btn-danger btn-sm">
-                رفض
-            </button>
-        </form>
-
-    {% elif project.status == "accepted" %}
-        <!-- Accepted: Allow Reject -->
-        <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="reject">
-            <button type="submit" class="btn btn-danger btn-sm">
-                إلغاء القبول
-            </button>
-        </form>
-
-    {% elif project.status == "rejected" %}
-        <!-- Rejected: Re-Approve -->
-        <form method="post" action="{% url 'supervisor_decide' project.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="accept">
-            <button type="submit" class="btn btn-warning btn-sm">
-                إعادة الموافقة
-            </button>
-        </form>
-    {% endif %}
-
-    <a href="{% url 'projectDetails' project.id %}"
-       class="btn btn-primary btn-sm"
-       style="margin-left:4px;">
-        التفاصيل
-    </a>
-
-</div>
-
+                    <div class="request-body">
+                        <div class="mb-3">
+                            <div class="text-muted small mb-1">الطلاب المشاركون</div>
+                            <strong>{% for s in project.participant_students %}{{ s.fullname }}{% if not forloop.last %}، {% endif %}{% endfor %}</strong>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6"><div class="surface-card p-3 h-100"><div class="text-muted small mb-1">التخصص</div><strong>{{ project.request_submission.major }}</strong></div></div>
+                            <div class="col-md-6"><div class="surface-card p-3 h-100"><div class="text-muted small mb-1">المشرف المختار</div><strong>{{ project.request_submission.supervisor_name }}</strong></div></div>
+                        </div>
+                        <p class="text-muted mb-4">{{ project.request_submission.idea_summary|truncatechars:160 }}</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            {% if project.status == 'pending' %}
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" class="btn btn-success">قبول الطلب</button>
+                                </form>
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-outline-danger">رفض الطلب</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" class="btn btn-warning">إعادة القبول</button>
+                                </form>
+                            {% endif %}
+                            <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-primary">فتح التفاصيل</a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        {% empty %}
+            <div class="col-12"><div class="alert alert-info">لا توجد طلبات حالياً.</div></div>
         {% endfor %}
-    {% else %}
-        <div class="col-12">
-            <div class="alert alert-info">لا توجد طلبات لعرضها.</div>
-        </div>
-    {% endif %}
+    </div>
 </div>
+{% endblock %}
 
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <h5>منصة مشاريع التخرج</h5>
-                    <p class="text-muted mt-2">منصة شاملة لإدارة وعرض وتقييم مشاريع التخرج للطلاب الجامعيين، تهدف إلى تسهيل عملية عرض ومشاركة المعرفة بين الطلاب والمشرفين والمجتمع.</p>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <h5>روابط سريعة</h5>
-                    <ul class="list-unstyled mt-2">
-                        <li><a href="{% url 'index' %}" class="text-muted text-decoration-none">الرئيسية</a></li>
-                        <li><a href="{% url 'BrowseProjects' %}" class="text-muted text-decoration-none">تصفح المشاريع</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">المميزات</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <h5>الحساب</h5>
-                    <ul class="list-unstyled mt-2">
-                        {% if userType == 'student' %}
-                        <li><a href="{% url 'studentProfile' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% elif userType == 'supervisor' %}
-                        <li><a href="{% url 'supervisorDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% elif userType == 'admin' %}
-                        <li><a href="{% url 'AdminDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                        {% else %}
-                        <li><a href="{% url 'login' %}" class="text-muted text-decoration-none">إنشاء حساب / تسجيل الدخول</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <h5>ابقَ على اتصال</h5>
-                    <p class="text-muted mt-2">اشترك في نشرتنا الإخبارية للحصول على أحدث المشاريع والتحديثات</p>
-                    <form class="d-flex mt-3">
-                        <input type="email" class="form-control me-2" placeholder="أدخل بريدك الإلكتروني">
-                        <button type="submit" class="btn btn-primary">اشتراك</button>
-                    </form>
-                    <div class="mt-3">
-                        <a href="#" class="text-muted me-3"><i class="bi bi-facebook fs-4"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="bi bi-twitter fs-4"></i></a>
-                        <a href="#" class="text-muted me-3"><i class="bi bi-linkedin fs-4"></i></a>
-                        <a href="#" class="text-muted"><i class="bi bi-instagram fs-4"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center mt-4 pt-3 border-top">
-                <p class="mb-0 text-muted">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript for Request Actions -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Confirm button functionality
-            document.querySelectorAll('.confirm-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const requestId = this.getAttribute('data-request-id');
-                    if (!this.disabled) {
-                        if (confirm('هل أنت متأكد من قبول هذا الطلب؟')) {
-                            // Update UI immediately
-                            const card = this.closest('.project-card');
-                            const badge = card.querySelector('.badge');
-                            badge.className = 'badge bg-success';
-                            badge.textContent = 'مقبول';
-                            
-                            // Disable action buttons
-                            card.querySelectorAll('.confirm-btn, .reject-btn').forEach(btn => {
-                                btn.disabled = true;
-                            });
-                            
-                            // Here you would typically send an AJAX request to update the status in the database
-                            console.log(`Request ${requestId} accepted`);
-                        }
-                    }
-                });
-            });
-
-            // Reject button functionality
-            document.querySelectorAll('.reject-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const requestId = this.getAttribute('data-request-id');
-                    if (!this.disabled) {
-                        if (confirm('هل أنت متأكد من رفض هذا الطلب؟')) {
-                            // Update UI immediately
-                            const card = this.closest('.project-card');
-                            const badge = card.querySelector('.badge');
-                            badge.className = 'badge bg-danger';
-                            badge.textContent = 'مرفوض';
-                            
-                            // Disable action buttons
-                            card.querySelectorAll('.confirm-btn, .reject-btn').forEach(btn => {
-                                btn.disabled = true;
-                            });
-                            
-                            // Here you would typically send an AJAX request to update the status in the database
-                            console.log(`Request ${requestId} rejected`);
-                        }
-                    }
-                });
-            });
-
-            // View details button functionality
-            document.querySelectorAll('.view-details-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const requestId = this.closest('.project-card').querySelector('.confirm-btn').getAttribute('data-request-id');
-                    // You can implement the details modal functionality here
-                    console.log(`View details for request ${requestId}`);
-                    // Add your modal opening logic here
-                });
-            });
-        });
-    </script>
-{% endblock content %}

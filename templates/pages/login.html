@@ -1,154 +1,294 @@
-{% extends "base.html" %}
-{% load static %}
-
+﻿{% extends "base.html" %}
+{% block title %}تسجيل الدخول وإنشاء الحساب{% endblock %}
+{% block extra_head %}
+<style>
+    .auth-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+    .auth-frame {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 2rem;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(17,74,125,0.12);
+    }
+    .auth-aside {
+        background: linear-gradient(145deg, #0e3358 0%, #0f6cbd 52%, #82bff1 100%);
+        color: #fff;
+        padding: 2.25rem;
+        min-height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .auth-aside::before,
+    .auth-aside::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.12);
+    }
+    .auth-aside::before {
+        width: 260px;
+        height: 260px;
+        top: -80px;
+        left: -70px;
+    }
+    .auth-aside::after {
+        width: 180px;
+        height: 180px;
+        bottom: -50px;
+        right: -30px;
+    }
+    .auth-main {
+        padding: 2rem;
+        background: linear-gradient(180deg,#ffffff 0%, #f9fbfe 100%);
+    }
+    .mode-switch,
+    .role-switch {
+        display: inline-flex;
+        padding: 0.35rem;
+        background: #edf4fb;
+        border-radius: 999px;
+        gap: 0.35rem;
+    }
+    .mode-btn,
+    .role-btn {
+        border: 0;
+        background: transparent;
+        color: #4d647d;
+        padding: 0.75rem 1.2rem;
+        border-radius: 999px;
+        font-weight: 700;
+        transition: 0.2s ease;
+    }
+    .mode-btn.active,
+    .role-btn.active {
+        background: linear-gradient(135deg,#0f6cbd,#2f88d0);
+        color: #fff;
+        box-shadow: 0 10px 22px rgba(15,108,189,0.22);
+    }
+    .stepper {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.4rem;
+    }
+    .step-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        color: #6a7b8e;
+        font-weight: 700;
+    }
+    .step-dot {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e7f1fb;
+        color: #0f6cbd;
+        font-weight: 800;
+    }
+    .step-item.active {
+        color: #15304f;
+    }
+    .step-item.active .step-dot {
+        background: linear-gradient(135deg,#0f6cbd,#2f88d0);
+        color: #fff;
+    }
+    .step-line {
+        width: 52px;
+        height: 2px;
+        background: #d5e4f3;
+        border-radius: 999px;
+    }
+    .form-panel {
+        display: none;
+        animation: fadeSlide .22s ease;
+    }
+    .form-panel.active {
+        display: block;
+    }
+    .section-card {
+        background: #fff;
+        border: 1px solid #e1ebf5;
+        border-radius: 1.35rem;
+        padding: 1.25rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .section-title {
+        font-size: 1rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    .info-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 999px;
+        padding: 0.55rem 0.95rem;
+        font-weight: 700;
+    }
+    @keyframes fadeSlide {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 991px) {
+        .auth-main { padding: 1.25rem; }
+        .auth-aside { padding: 1.5rem; }
+    }
+</style>
+{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/login.css' %}">
-
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <div class="logo mx-auto"><i class="bi bi-mortarboard"></i></div>
-                    <h3 class="fw-bold">منصة مشاريع التخرج</h3>
-
-                    {% if msg %}
-                    <div class="alert alert-danger py-2 mt-2" style="font-size: 0.9rem;">{{ msg }}</div>
-                    {% endif %}
+<div class="container py-4">
+    <div class="auth-shell">
+        <div class="auth-frame">
+            <div class="row g-0">
+                <div class="col-lg-4">
+                    <div class="auth-aside d-flex flex-column justify-content-between h-100">
+                        <div class="position-relative" style="z-index:1;">
+                            <div class="info-pill mb-3"><i class="bi bi-shield-check"></i>دخول آمن وخطوات واضحة</div>
+                            <h1 class="h3 fw-bold mb-3">منصة مشاريع التخرج</h1>
+                            <p class="mb-4">جعلنا بطاقة الدخول والإنشاء أوضح من أول زيارة: تختار العملية أولاً، ثم تكمل الخطوة التالية بدون تشتيت.</p>
+                            <div class="d-grid gap-2">
+                                <div class="quick-chip bg-white text-dark"><i class="bi bi-box-arrow-in-right"></i>تسجيل دخول سريع</div>
+                                <div class="quick-chip bg-white text-dark"><i class="bi bi-person-plus"></i>إنشاء حساب بخطوات مرتبة</div>
+                                <div class="quick-chip bg-white text-dark"><i class="bi bi-diagram-3"></i>دعم الطالب والمشرف مباشرة</div>
+                            </div>
+                        </div>
+                        <div class="position-relative mt-4" style="z-index:1;">
+                            <small class="text-white-50">بعد تسجيل الدخول ستجد تنقلاً واضحاً في جميع الصفحات بدون الحاجة للرجوع بزر المتصفح.</small>
+                        </div>
+                    </div>
                 </div>
+                <div class="col-lg-8">
+                    <div class="auth-main">
+                        {% if msg %}<div class="alert alert-warning mb-4">{{ msg }}</div>{% endif %}
 
-                <div class="card-body">
-                    <ul class="nav nav-tabs justify-content-center mb-4" id="loginTab">
-                        <li class="nav-item">
-                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button">
-                                تسجيل الدخول
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button">
-                                إنشاء حساب
-                            </button>
-                        </li>
-                    </ul>
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                            <div>
+                                <h2 class="h3 fw-bold mb-2">مرحباً بك</h2>
+                                <p class="text-muted mb-0">اختر أولاً هل تريد الدخول إلى حسابك أو إنشاء حساب جديد.</p>
+                            </div>
+                            <div class="mode-switch" role="tablist" aria-label="auth mode switch">
+                                <button type="button" class="mode-btn active" data-mode="login">تسجيل الدخول</button>
+                                <button type="button" class="mode-btn" data-mode="signup">إنشاء حساب</button>
+                            </div>
+                        </div>
 
-                    <div class="tab-content" id="loginTabContent">
-                        <!-- Login -->
-                        <div class="tab-pane fade show active" id="login">
-                            <form method="POST">
+                        <div id="loginPanel" class="form-panel active">
+                            <div class="stepper">
+                                <div class="step-item active"><span class="step-dot">1</span><span>أدخل بياناتك</span></div>
+                                <span class="step-line"></span>
+                                <div class="step-item active"><span class="step-dot">2</span><span>الدخول إلى المنصة</span></div>
+                            </div>
+                            <form method="POST" class="section-card">
                                 {% csrf_token %}
-                                <div class="mb-3">
-                                    <label class="form-label">البريد الإلكتروني</label>
-                                    <input type="email" class="form-control" name="email" required>
+                                <div class="section-title">بيانات تسجيل الدخول</div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">البريد الإلكتروني</label>
+                                        <input class="form-control" type="email" name="email" placeholder="name@example.com" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">كلمة المرور</label>
+                                        <input class="form-control" type="password" name="password" placeholder="أدخل كلمة المرور" required>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">كلمة المرور</label>
-                                    <input type="password" class="form-control" name="password" required>
-                                </div>
-                                <button type="submit" name="loginBtn" value="1" class="btn btn-primary w-100">دخول</button>
-                                <p class="text-center mt-3">
-                                    <a href="{% url 'LoginForAdmin' %}" class="text-decoration-none">تسجيل دخول مسؤول</a>
-                                </p>
+                                <button class="btn btn-primary w-100 mt-4 py-3" type="submit" name="loginBtn" value="1">دخول إلى الحساب</button>
                             </form>
                         </div>
 
-                        <!-- Register -->
-                        <div class="tab-pane fade" id="register">
-                            <form method="POST">
+                        <div id="signupPanel" class="form-panel">
+                            <div class="stepper" id="signupStepper">
+                                <div class="step-item active" data-step-indicator="1"><span class="step-dot">1</span><span>اختر نوع الحساب</span></div>
+                                <span class="step-line"></span>
+                                <div class="step-item active" data-step-indicator="2"><span class="step-dot">2</span><span>أكمل البيانات</span></div>
+                                <span class="step-line"></span>
+                                <div class="step-item active" data-step-indicator="3"><span class="step-dot">3</span><span>إنشاء الحساب</span></div>
+                            </div>
+
+                            <form method="POST" id="signupForm" class="section-card">
                                 {% csrf_token %}
+                                <input type="hidden" name="type" id="accountType" value="student">
 
-                                <div class="role-selection mb-4 d-flex justify-content-around">
-                                    <div class="role-option text-center p-3 border rounded cursor-pointer active"
-                                         onclick="selectRole('student')" style="width: 45%; cursor: pointer;">
-                                        <i class="bi bi-mortarboard d-block"></i>
-                                        <input type="radio" value="student" name="type" id="roleStudent" checked style="display: none;">
-                                        <label>طالب</label>
-                                    </div>
+                                <div class="section-title">الخطوة 1: نوع الحساب</div>
+                                <div class="role-switch mb-4" role="tablist" aria-label="account type switch">
+                                    <button type="button" class="role-btn active" data-role="student">طالب</button>
+                                    <button type="button" class="role-btn" data-role="supervisor">مشرف</button>
+                                </div>
 
-                                    <div class="role-option text-center p-3 border rounded cursor-pointer"
-                                         onclick="selectRole('supervisor')" style="width: 45%; cursor: pointer;">
-                                        <i class="bi bi-person-badge d-block"></i>
-                                        <input type="radio" value="supervisor" name="type" id="roleSupervisor" style="display: none;">
-                                        <label>مشرف</label>
+                                <div class="section-title">الخطوة 2: البيانات الأساسية</div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6"><label class="form-label">البريد الإلكتروني</label><input class="form-control" type="email" name="email" required></div>
+                                    <div class="col-md-6"><label class="form-label">الاسم الكامل</label><input class="form-control" id="sharedNameHint" placeholder="اكتب الاسم الكامل في القسم المناسب بالأسفل" disabled></div>
+                                    <div class="col-md-6"><label class="form-label">كلمة المرور</label><input class="form-control" type="password" name="password" required></div>
+                                    <div class="col-md-6"><label class="form-label">تأكيد كلمة المرور</label><input class="form-control" type="password" name="rpassword" required></div>
+                                </div>
+
+                                <div id="studentFields" class="row g-3 mt-1">
+                                    <div class="col-12"><div class="section-title mb-0">الخطوة 3: بيانات الطالب</div></div>
+                                    <div class="col-md-6"><label class="form-label">الاسم الكامل</label><input class="form-control" name="StudentFullName"></div>
+                                    <div class="col-md-6"><label class="form-label">الرقم الجامعي</label><input class="form-control" name="studentID"></div>
+                                    <div class="col-md-6"><label class="form-label">السنة الدراسية</label><input class="form-control" type="number" name="graduationYear"></div>
+                                    <div class="col-md-6"><label class="form-label">التخصص</label><select class="form-select" name="StudentMajor"><option value="">اختر التخصص</option>{% for major in majors %}<option value="{{ major.id }}">{{ major.major_name }}</option>{% endfor %}</select></div>
+                                    <div class="col-md-6"><label class="form-label">الجامعة</label><select class="form-select" name="StudentUniversity"><option value="">اختر الجامعة</option>{% for unv in unvs %}<option value="{{ unv.id }}">{{ unv.univ_name }}</option>{% endfor %}</select></div>
+                                </div>
+
+                                <div id="supervisorFields" class="row g-3 mt-1 d-none">
+                                    <div class="col-12"><div class="section-title mb-0">الخطوة 3: بيانات المشرف</div></div>
+                                    <div class="col-md-6"><label class="form-label">الاسم الكامل</label><input class="form-control" name="supervisorName"></div>
+                                    <div class="col-md-6"><label class="form-label">التخصص</label><select class="form-select" name="supervisordepartment"><option value="">اختر التخصص</option>{% for major in majors %}<option value="{{ major.id }}">{{ major.major_name }}</option>{% endfor %}</select></div>
+                                    <div class="col-md-6"><label class="form-label">الجامعة</label><select class="form-select" name="supervisorUniversity"><option value="">اختر الجامعة</option>{% for unv in unvs %}<option value="{{ unv.id }}">{{ unv.univ_name }}</option>{% endfor %}</select></div>
+                                    <input type="hidden" name="supervisorPosotion" value="Supervisor">
+                                    <div class="col-md-6 d-flex align-items-end">
+                                        <div class="w-100 p-3 rounded-4" style="background:#eef6ff;border:1px solid #dbe6f2;">
+                                            <div class="fw-bold text-primary mb-1">الصفة الوظيفية</div>
+                                            <small class="text-muted">سيتم تعيينها تلقائياً كمشرف، لذلك لا تحتاج إلى إدخالها يدوياً.</small>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div id="studentFields">
-                                    <div class="mb-3"><label class="form-label">الاسم الكامل</label><input type="text" class="form-control" name="StudentFullName"></div>
-                                    <div class="mb-3"><label class="form-label">رقم الطالب</label><input type="text" class="form-control" name="studentID"></div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">الجامعة</label>
-                                        <select name="StudentUniversity" class="form-control">
-                                            {% for unv in unvs %}
-                                            <option value="{{ unv.id }}">{{ unv.univ_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">التخصص</label>
-                                        <select name="StudentMajor" class="form-control">
-                                            {% for mj in majors %}
-                                            <option value="{{ mj.id }}">{{ mj.major_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">سنة التخرج</label>
-                                        <input type="number" class="form-control" name="graduationYear">
-                                    </div>
-                                </div>
-
-                                <div id="supervisorFields" style="display: none;">
-                                    <div class="mb-3"><label class="form-label">الاسم الكامل</label><input type="text" class="form-control" name="supervisorName"></div>
-                                    <div class="mb-3"><label class="form-label">المرتبة الأكاديمية</label><input type="text" class="form-control" name="supervisorPosotion"></div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">الجامعة</label>
-                                        <select name="supervisorUniversity" class="form-control">
-                                            {% for unv in unvs %}
-                                            <option value="{{ unv.id }}">{{ unv.univ_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">القسم</label>
-                                        <select name="supervisordepartment" class="form-control">
-                                            {% for mj in majors %}
-                                            <option value="{{ mj.id }}">{{ mj.major_name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3"><label class="form-label">البريد الإلكتروني</label><input type="email" class="form-control" name="email" required></div>
-                                <div class="mb-3"><label class="form-label">كلمة المرور</label><input type="password" class="form-control" name="password" required></div>
-                                <div class="mb-3"><label class="form-label">تأكيد كلمة المرور</label><input type="password" class="form-control" name="rpassword" required></div>
-
-                                <button type="submit" name="createAccount" value="1" class="btn btn-primary w-100">
-                                    إنشاء الحساب
-                                </button>
+                                <button class="btn btn-primary w-100 mt-4 py-3" type="submit" name="createAccount" value="1">إنشاء الحساب</button>
                             </form>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 </div>
-
+{% endblock %}
+{% block extra_scripts %}
 <script>
-    function selectRole(role) {
-        document.getElementById('roleStudent').checked = (role === 'student');
-        document.getElementById('roleSupervisor').checked = (role === 'supervisor');
+    const modeButtons = document.querySelectorAll('[data-mode]');
+    const roleButtons = document.querySelectorAll('[data-role]');
+    const loginPanel = document.getElementById('loginPanel');
+    const signupPanel = document.getElementById('signupPanel');
+    const accountType = document.getElementById('accountType');
+    const studentFields = document.getElementById('studentFields');
+    const supervisorFields = document.getElementById('supervisorFields');
 
-        document.getElementById('studentFields').style.display = (role === 'student' ? 'block' : 'none');
-        document.getElementById('supervisorFields').style.display = (role === 'supervisor' ? 'block' : 'none');
+    function switchMode(mode) {
+        modeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+        loginPanel.classList.toggle('active', mode === 'login');
+        signupPanel.classList.toggle('active', mode === 'signup');
     }
-</script>
 
-<script src="{% static 'js/main.js' %}"></script>
-{% endblock content %}
+    function switchRole(role) {
+        accountType.value = role;
+        roleButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.role === role));
+        studentFields.classList.toggle('d-none', role !== 'student');
+        supervisorFields.classList.toggle('d-none', role !== 'supervisor');
+    }
+
+    modeButtons.forEach(btn => btn.addEventListener('click', () => switchMode(btn.dataset.mode)));
+    roleButtons.forEach(btn => btn.addEventListener('click', () => switchRole(btn.dataset.role)));
+</script>
+{% endblock %}

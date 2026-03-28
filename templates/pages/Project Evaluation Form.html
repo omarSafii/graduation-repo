@@ -1,243 +1,117 @@
-{% load static %}
-{% include "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}تقييم المشروع{% endblock %}
+{% block extra_head %}
+<style>
+    .rating-shell {
+        max-width: 980px;
+        margin: 0 auto;
+    }
+    .rating-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.5rem;
+        box-shadow: 0 16px 40px rgba(17,74,125,0.08);
+    }
+    .rating-star-input { display: none; }
+    .rating-stars-picker {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 0.35rem;
+        font-size: 2.4rem;
+    }
+    .rating-stars-picker label {
+        color: #d0d9e5;
+        cursor: pointer;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+    .rating-stars-picker label:hover,
+    .rating-stars-picker label:hover ~ label,
+    .rating-star-input:checked ~ label {
+        color: #f4b400;
+        transform: scale(1.05);
+    }
+    .score-visibility {
+        border: 1px solid #dbe6f2;
+        border-radius: 1rem;
+        background: #f8fbff;
+        padding: 0.85rem 1rem;
+    }
+</style>
+{% endblock %}
 {% block content %}
-   <link rel="stylesheet" href="{%static 'css/project ev.css'%}">
-
-<!-- Project Evaluation Page -->
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block sidebar p-4">
-            <div class="position-sticky">
-                <h5 class="mb-3">القائمة</h5>
-                <ul class="nav flex-column">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link active" href="#">
-                            <i class="bi bi-person-lines-fill me-2"></i>
-                            لوحة التحكم
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'BrowseProjects' %}">
-                            <i class="bi bi-journal-text me-2"></i>
-                            مشاريع للتصحيح
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'supervisorDashboard' %}">
-                            <i class="bi bi-gear me-2"></i>
-                            إعدادات الحساب
-                        </a>
-                    </li>
-                </ul>
-                <hr class="my-4">
-            </div>
-        </nav>
-
-        <!-- Main -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>تقييم مشروع التخرج</h2>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-right me-2"></i>العودة إلى المشاريع
-                    </a>
-                    <!-- زر حفظ مسودة -->
-                    <button type="submit" form="evaluationForm" name="saveDraft" value="1" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i>حفظ كمسودة
-                    </button>
+<div class="container py-4 {% if is_popup %}px-0{% endif %}">
+    <div class="rating-shell">
+        {% if not is_popup %}
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                <div>
+                    <h1 class="section-title mb-2">تقييم المشروع</h1>
+                    <p class="section-subtitle mb-0">واجهة تقييم أوضح بالنجوم مع تحكم أفضل في إظهار الدرجة النهائية.</p>
+                </div>
+                <div class="page-actions">
+                    <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary">تفاصيل المشروع</a>
+                    <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-secondary">لوحة المشرف</a>
                 </div>
             </div>
+        {% endif %}
 
-            <!-- Project Info -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-2">{{ project.ProjectName }}</h4>
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                <span class="project-badge badge bg-primary">{{ project.MajorID.major_name }}</span>
-                                <span class="project-badge badge bg-info text-dark">{{ project.UniversityID.univ_name }}</span>
-                                <span class="project-badge badge bg-success">{{ project.yearOfProject }}</span>
+        <div class="rating-card p-4 mb-4">
+            <h3 class="h4 mb-2">{{ project.ProjectName }}</h3>
+            <p class="text-muted mb-2">الطلاب المشاركون: {% for student in participant_students %}{{ student.fullname }}{% if not forloop.last %}، {% endif %}{% endfor %}</p>
+            <div class="d-flex gap-3 flex-wrap align-items-center">
+                {% if project_rating_summary.has_ratings %}
+                    <span class="badge text-bg-warning text-dark">{{ project_rating_summary.avg_rating|floatformat:1 }}/5</span>
+                    <span class="text-muted">عدد المشرفين المقيمين: {{ project_rating_summary.rating_count }}</span>
+                {% else %}
+                    <span class="text-muted">غير مُراجع بعد</span>
+                {% endif %}
+                {% if show_final_score %}
+                    <span class="badge bg-success">الدرجة النهائية: {{ project.degree|floatformat:1 }}</span>
+                {% elif project.degree %}
+                    <span class="badge text-bg-secondary">الدرجة النهائية مخفية</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST" class="rating-card p-4">
+            {% csrf_token %}
+            <h4 class="h5 mb-2">اختر عدد النجوم</h4>
+            <p class="text-muted">بدلاً من السحب، يكفي الضغط على النجمة المطلوبة مباشرة.</p>
+            <div class="rating-stars-picker mb-4">
+                <input class="rating-star-input" type="radio" id="star5" name="star_rating" value="5" {% if selected_stars == 5 %}checked{% endif %}><label for="star5"><i class="bi bi-star-fill"></i></label>
+                <input class="rating-star-input" type="radio" id="star4" name="star_rating" value="4" {% if selected_stars == 4 %}checked{% endif %}><label for="star4"><i class="bi bi-star-fill"></i></label>
+                <input class="rating-star-input" type="radio" id="star3" name="star_rating" value="3" {% if selected_stars == 3 %}checked{% endif %}><label for="star3"><i class="bi bi-star-fill"></i></label>
+                <input class="rating-star-input" type="radio" id="star2" name="star_rating" value="2" {% if selected_stars == 2 %}checked{% endif %}><label for="star2"><i class="bi bi-star-fill"></i></label>
+                <input class="rating-star-input" type="radio" id="star1" name="star_rating" value="1" {% if selected_stars == 1 %}checked{% endif %}><label for="star1"><i class="bi bi-star-fill"></i></label>
+            </div>
+
+            {% if can_manage_final_score %}
+                <div class="row g-3 mb-4 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">الدرجة النهائية</label>
+                        <input type="number" step="0.1" min="0" max="100" class="form-control" name="degree" value="{% if project.degree %}{{ project.degree }}{% endif %}">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="score-visibility">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="finalScoreVisible" name="final_score_visible" {% if project.final_score_visible %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="finalScoreVisible">إظهار الدرجة النهائية</label>
                             </div>
-                            <p class="mb-0">بواسطة: <strong>{{ project.Student_id.fullname }}</strong></p>
-                        </div>
-                        <div class="mt-3 mt-md-0">
-                            <!-- عرض المشروع -> يفتح صفحة التفاصيل -->
-                            <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-primary me-2" target="_blank">
-                                <i class="bi bi-eye me-2"></i>عرض المشروع
-                            </a>
-                            <!-- تحميل PDF مباشر -->
-                            {% if project.pdf_file %}
-                                <a href="{{ project.pdf_file.url }}" class="btn btn-outline-secondary" download>
-                                    <i class="bi bi-file-earmark-pdf me-2"></i>تحميل PDF
-                                </a>
-                            {% else %}
-                                <button class="btn btn-outline-secondary" disabled>
-                                    <i class="bi bi-file-earmark-pdf me-2"></i>لا يوجد ملف PDF
-                                </button>
-                            {% endif %}
+                            <small class="text-muted">عند إخفائها ستبقى ظاهرة فقط للطلاب المشاركين في هذا المشروع وللمشرف المسؤول عنه.</small>
                         </div>
                     </div>
                 </div>
+            {% else %}
+                <div class="alert alert-info mb-4">يمكنك هنا تقييم المشروع بالنجوم فقط. الدرجة النهائية يتحكم بها المشرف المسؤول عن هذا المشروع فقط.</div>
+            {% endif %}
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="submit" name="saveRating" value="1" class="btn btn-primary">حفظ التقييم</button>
+                {% if not is_popup %}
+                    <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary">العودة</a>
+                {% endif %}
             </div>
-
-            <!-- Evaluation Form -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0">نموذج تقييم المشروع</h4>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading">ملاحظات مهمة!</h5>
-                        <ul>
-                            <li>يرجى قراءة المشروع بعناية قبل تعبئة هذا النموذج.</li>
-                            <li>قم بتقييم كل معيار من 0 إلى 100.</li>
-                            <li>يُفضّل كتابة ملاحظات موجزة لكل معيار ليطلع عليها الطالب.</li>
-                        </ul>
-                    </div>
-
-                    <!-- FORM: نضيف action للفيوز -->
-                    <form id="evaluationForm" method="POST" action="{% url 'ProjectEvaluationForm' project.id %}">
-                        {% csrf_token %}
-
-                        <!-- معايير التقييم: إضافة القيم المحفوظة مسبقاً -->
-                        <div class="mb-4">
-                            <h5 class="mb-3">معايير التقييم</h5>
-
-                            <!-- Creativity -->
-                            <div class="criterion-container mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="fw-bold">الإبداع</h6>
-                                    <div class="rating-stars">★ ★ ★ ★ ☆</div>
-                                </div>
-                                <input type="range" class="form-range mt-2" id="criterion1" name="Creativity" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Creativity }}{% endif %}">
-                                <div class="mt-2">
-                                    <label for="note_creativity" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_creativity" name="note_creativity" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
-                                </div>
-                            </div>
-
-                            <!-- Implementation -->
-                            <div class="criterion-container mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="fw-bold">التنفيذ</h6>
-                                    <div class="rating-stars">★ ★ ★ ★ ☆</div>
-                                </div>
-                                <input type="range" class="form-range mt-2" id="criterion2" name="Implementation" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Implementation }}{% endif %}">
-                                <div class="mt-2">
-                                    <label for="note_implementation" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_implementation" name="note_implementation" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
-                                </div>
-                            </div>
-
-                            <!-- Functionality -->
-                            <div class="criterion-container mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="fw-bold">الوظائف</h6>
-                                    <div class="rating-stars">★ ★ ★ ★ ☆</div>
-                                </div>
-                                <input type="range" class="form-range mt-2" id="criterion3" name="Functionality" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Functionality }}{% endif %}">
-                                <div class="mt-2">
-                                    <label for="note_functionality" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_functionality" name="note_functionality" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
-                                </div>
-                            </div>
-
-                            <!-- Interface -->
-                            <div class="criterion-container mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="fw-bold">الواجهة</h6>
-                                    <div class="rating-stars">★ ★ ★ ★ ☆</div>
-                                </div>
-                                <input type="range" class="form-range mt-2" id="criterion4" name="Interface" min="0" max="100" step="1" value="{% if last_rating %}{{ last_rating.Interface }}{% endif %}">
-                                <div class="mt-2">
-                                    <label for="note_interface" class="form-label fw-bold">ملاحظات على هذا المعيار</label>
-                                    <textarea class="form-control" id="note_interface" name="note_interface" rows="3" placeholder="اكتب ملاحظاتك...">{% if last_rating %}{{ last_rating.notes }}{% endif %}</textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- الدرجة الكلية والتصنيف والحالة -->
-                        <div class="card evaluation-form mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">الدرجة الكلية</h5>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="input-group mb-2">
-                                            <input type="number" class="form-control" name="degree" placeholder="الدرجة الكلية من 100" min="0" max="100" value="{% if project.degree %}{{ project.degree }}{% endif %}">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">التصنيف العام</label>
-                                            <select class="form-select" name="classfication">
-                                                <option value="">اختر التصنيف</option>
-                                                <option value="ممتاز" {% if project.classification == 'ممتاز' %}selected{% endif %}>ممتاز</option>
-                                                <option value="جيد جداً" {% if project.classification == 'جيد جداً' %}selected{% endif %}>جيد جداً</option>
-                                                <option value="جيد" {% if project.classification == 'جيد' %}selected{% endif %}>جيد</option>
-                                                <option value="مقبول" {% if project.classification == 'مقبول' %}selected{% endif %}>مقبول</option>
-                                                <option value="ضعيف" {% if project.classification == 'ضعيف' %}selected{% endif %}>ضعيف</option>
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label class="form-label fw-bold">حالة المشروع</label>
-                                            <select class="form-select" name="status">
-                                                <option value="">اختر الحالة</option>
-                                                <option value="مقبول" {% if project.status == 'accepted' %}selected{% endif %}>مقبول</option>
-                                                <option value="مرفوض" {% if project.status == 'rejected' %}selected{% endif %}>مرفوض</option>
-                                                <option value="تحت المراجعة" {% if project.status == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
-                                                <option value="تحديث مطلوب" {% if project.status == 'update_required' %}selected{% endif %}>تحديث مطلوب</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ملاحظات عامة -->
-                        <div class="card evaluation-form mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">ملاحظات عامة</h5>
-                                <div class="mb-3">
-                                    <label for="generalComments" class="form-label">ملاحظات عامة على المشروع</label>
-                                    <textarea class="form-control" id="generalComments" rows="5" name="notes" placeholder="اكتب ملاحظاتك العامة..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- أزرار الإجراء -->
-                        <div class="d-flex justify-content-between">
-                            <!-- زر رفض المشروع -->
-                            <button type="submit" name="reject" value="1" class="btn btn-danger me-2">
-                                <i class="bi bi-x-circle me-2"></i>رفض المشروع
-                            </button>
-
-                            <!-- حفظ مسودة -->
-                            <button type="submit" name="saveDraft" value="1" class="btn btn-outline-secondary me-2">
-                                <i class="bi bi-save me-2"></i>حفظ المسودة
-                            </button>
-
-                            <!-- إرسال التقييم النهائي -->
-                            <button type="submit" name="saveRating" value="1" class="btn btn-success">
-                                <i class="bi bi-check2-circle me-2"></i>إرسال التقييم
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </main>
+        </form>
     </div>
 </div>
-
-<!-- Footer -->
-<footer class="bg-dark text-white py-4 mt-5">
-    <div class="container text-center">
-        <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-    </div>
-</footer>
-
 {% endblock %}

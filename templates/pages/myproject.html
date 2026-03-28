@@ -1,250 +1,48 @@
-{% load static %}
-{% include "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}مشاريعي{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{%static 'css/myproject.css'%}">
-<style>
-    .status-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 10;
-        font-size: 0.75rem;
-        font-weight: bold;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.5rem;
-    }
-
-    .status-published {
-        background-color: #28a745;
-        color: white;
-    }
-
-    .status-pending {
-        background-color: #ffc107;
-        color: #212529;
-    }
-
-    .status-inprogress {
-        background-color: #17a2b8;
-        color: white;
-    }
-
-    .project-image {
-        position: relative;
-    }
-</style>
-</head>
-<body>
-
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="#">
-            <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-            <span>منصة مشاريع التخرج</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" href="{%url 'index'%}">الرئيسية</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="{%url 'MyProject' %}">مشاريعي</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{%url 'UploadProject' %}">تقديم طلب مشروع</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{%url 'studentProfile'%}">حسابي</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link btn btn-light text-primary ms-2" href="#">خروج</a>
-                </li>
-            </ul>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="section-title mb-2">مشاريعي</h1>
+            <p class="section-subtitle mb-0">تعرض هذه الصفحة جميع الطلبات والمشاريع المرتبطة بك، مع أزرار واضحة حسب حالة كل مشروع.</p>
+        </div>
+        <div class="page-actions">
+            <a href="{% url 'UploadProject' %}" class="btn btn-primary">تقديم طلب</a>
+            <a href="{% url 'studentProfile' %}" class="btn btn-outline-secondary">الملف الشخصي</a>
         </div>
     </div>
-</nav>
 
-<div class="container-fluid">
-<div class="row">
-
-<nav class="col-md-3 col-lg-2 d-md-block sidebar p-4">
-    <div class="position-sticky">
-        <h5 class="mb-3">القائمة</h5>
-        <ul class="nav flex-column">
-            <li class="nav-item mb-2">
-                <a class="nav-link active" href="myproject.html">
-                    <i class="bi bi-person-lines-fill me-2"></i>
-                    مشاريعي
-                </a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="Student Profile.html">
-                    <i class="bi bi-gear me-2"></i>
-                    إعدادات الحساب
-                </a>
-            </li>
-        </ul>
-
-        <hr class="my-4">
-
-        <h6 class="text-muted">الإحصائيات</h6>
-        <div class="mt-3">
-            <p class="mb-1">المشاريع المُقدمة: <strong>{{countOfprojs}}</strong></p>
-            <p class="mb-1">المشاريع المُقيّمة: <strong>{{ratingProj}}</strong></p>
-            <p class="mb-0">أعلى تقييم: <strong>{{maxRate.rates}}/5</strong></p>
-        </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="surface-card p-3"><div class="text-muted">عدد المشاريع</div><strong class="fs-3">{{ countOfprojs }}</strong></div></div>
+        <div class="col-md-3"><div class="surface-card p-3"><div class="text-muted">تم تقييمها</div><strong class="fs-3 text-success">{{ ratingProj }}</strong></div></div>
+        <div class="col-md-3"><div class="surface-card p-3"><div class="text-muted">بانتظار التقييم</div><strong class="fs-3 text-warning">{{ notRating }}</strong></div></div>
+        <div class="col-md-3"><div class="surface-card p-3"><div class="text-muted">متوسط التقييم</div><strong class="fs-3 text-primary">{{ ava|floatformat:1 }}</strong></div></div>
     </div>
-</nav>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>مشاريعي</h2>
-    <a href="{%url 'UploadProject'%}" class="btn btn-primary">رفع مشروع جديد</a>
-</div>
-
-<div class="row g-4">
-
-{% if projects %}
-{% for project in projects %}
-<div class="col-md-6 col-lg-4">
-    <div class="card project-card h-100 shadow-sm">
-
-        <div class="project-image position-relative">
-            {% with first_pic=project.projectpictures_set.first %}
-                {% if first_pic %}
-                    <img src="{{ first_pic.image.url }}" alt="مشروع {{project.ProjectName}}" style="width:100%; height:150px; object-fit:cover;">
-                {% else %}
-                    <img src="https://via.placeholder.com/400x150?text={{project.ProjectName|urlencode}}" alt="مشروع {{project.ProjectName}}">
-                {% endif %}
-            {% endwith %}
-
-            {% if project.status == 'finished' %}
-                <span class="status-badge status-published">منشور</span>
-            {% elif project.status == 'accepted' %}
-                <span class="status-badge status-inprogress">قيد التنفيذ</span>
-            {% elif project.status == 'pending' %}
-                <span class="status-badge status-pending">معلق</span>
-            {% else %}
-                <span class="status-badge status-pending">معلق</span>
-            {% endif %}
-        </div>
-
-        <div class="card-body d-flex flex-column">
-            <h5 class="card-title mb-2">{{project.ProjectName}}</h5>
-            <p class="card-text text-muted mb-3">{{project.Description|truncatechars:100}}</p>
-
-            <div class="d-flex justify-content-between align-items-center mt-auto">
-                <span class="badge bg-primary">{{project.MajorID.major_name}}</span>
-                
-                {% if project.status == 'accepted' %}
-                <a href="{% url 'complete_project' project.id %}" class="btn btn-sm btn-info text-white">
-                    إكمال التقدم
-                </a>
-                {% else %}
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        إجراءات
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{%url 'projectDetails' project.id %}">عرض</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="{% url 'MyProject' project.id %}" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟')">حذف</a></li>
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="mt-2">
-                <small class="text-muted">
-                    رفع في: {{project.UploadDate|date:"Y-m-d"}}
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
-{% else %}
-<div class="col-12">
-    <div class="alert alert-info text-center">
-        لا توجد مشاريع حالياً. قم برفع مشروع جديد!
-    </div>
-</div>
-{% endif %}
-
-<!-- Add New Project Box -->
-<div class="col-md-6 col-lg-4">
-    <div class="card project-card h-100 shadow-sm border-dashed" style="border: 2px dashed #ced4da;">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 250px;">
-            <i class="bi bi-plus-circle-dotted display-4 text-muted mb-3"></i>
-            <h5 class="card-title text-center">مشروع جديد</h5>
-            <p class="card-text text-center text-muted">انقر لإضافة مشروع تخرج جديد</p>
-            <a href="{%url 'UploadProject'%}" class="btn btn-primary">رفع مشروع جديد</a>
-        </div>
-    </div>
-</div>
-
-</div>
-
-<!-- ================== Rating Section ================== -->
-<div class="mt-5">
-    <h3 class="mb-4">حالة التقييم</h3>
     <div class="row g-4">
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5>قيد الانتظار</h5>
-                    <h2>{{notRating|default:"0"}}</h2>
-                    <p>مشاريع بانتظار التقييم</p>
+        {% for project in projects %}
+            <div class="col-md-6 col-xl-4">
+                <div class="surface-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <h4 class="h5 mb-0">{{ project.ProjectName }}</h4>
+                        <span class="badge {% if project.is_completed %}text-bg-dark{% elif project.status == 'accepted' %}text-bg-primary{% elif project.status == 'pending' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{% if project.is_completed %}مكتمل{% elif project.status == 'accepted' %}قيد المتابعة{% elif project.status == 'pending' %}بانتظار القرار{% else %}{{ project.status }}{% endif %}</span>
+                    </div>
+                    <div class="text-muted small mb-2">المشاركون: {% for s in project.participant_students %}{{ s.fullname }}{% if not forloop.last %}، {% endif %}{% endfor %}</div>
+                    <p class="text-muted">{{ project.Description|truncatechars:120 }}</p>
+                    <div class="d-flex gap-2 flex-wrap mt-3">
+                        <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary btn-sm">التفاصيل</a>
+                        {% if project.status == 'accepted' and not project.is_completed %}
+                            <a href="{% url 'complete_project' project.id %}" class="btn btn-primary btn-sm">متابعة التقدم</a>
+                        {% elif project.is_completed %}
+                            <button class="btn btn-outline-secondary btn-sm" disabled>عرض فقط بعد الاكتمال</button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5>تم التقييم</h5>
-                    <h2>{{ratingProj|default:"0"}}</h2>
-                    <p>مشاريع تم تقييمها</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5>متوسط التقييم</h5>
-                    <h2>{{ava|default:"0"|floatformat:1}}</h2>
-                    <p>من أصل 5</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5>أعلى تقييم</h5>
-                    <h2>{% if maxRate %}{{maxRate.rates}}{% else %}0{% endif %}</h2>
-                    <p>{% if maxRate %}{{maxRate.ProjectName}}{% else %}---{% endif %}</p>
-                </div>
-            </div>
-        </div>
-
+        {% empty %}
+            <div class="col-12"><div class="alert alert-info">لا توجد مشاريع حالياً. يمكنك البدء عبر تقديم طلب جديد.</div></div>
+        {% endfor %}
     </div>
 </div>
-
-</main>
-</div>
-</div>
-
-<footer class="bg-dark text-white py-4 mt-5">
-    <div class="container text-center">
-        <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-    </div>
-</footer>
-
-{% endblock content %}
+{% endblock %}

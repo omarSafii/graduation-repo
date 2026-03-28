@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from datetime import datetime
 from django.utils import timezone
 # Create your models here.
@@ -21,7 +21,7 @@ class BaseUser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        abstract = True  # هذا لن ينشئ جدولاً لهذا الموديل
+        abstract = True  # ظ‡ط°ط§ ظ„ظ† ظٹظ†ط´ط¦ ط¬ط¯ظˆظ„ط§ظ‹ ظ„ظ‡ط°ط§ ط§ظ„ظ…ظˆط¯ظٹظ„
         verbose_name = 'User'
         verbose_name_plural = 'Users'
 
@@ -63,7 +63,7 @@ class Projects(models.Model):
         on_delete=models.CASCADE
     )
 
-    # صاحب المشروع الأساسي
+    # طµط§ط­ط¨ ط§ظ„ظ…ط´ط±ظˆط¹ ط§ظ„ط£ط³ط§ط³ظٹ
     Student_id = models.ForeignKey(
         Student,
         on_delete=models.CASCADE,
@@ -71,14 +71,14 @@ class Projects(models.Model):
         null=True
     )
 
-    # الطلاب المشاركون
+    # ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…ط´ط§ط±ظƒظˆظ†
     collaborators = models.ManyToManyField(
         Student,
         blank=True,
         related_name='collaborations'
     )
 
-    # المشرف
+    # ط§ظ„ظ…ط´ط±ظپ
     supervisor = models.ForeignKey(
         Supervisor,
         on_delete=models.SET_NULL,
@@ -87,7 +87,7 @@ class Projects(models.Model):
         related_name='supervised_projects'
     )
 
-    # سنة المشروع
+    # ط³ظ†ط© ط§ظ„ظ…ط´ط±ظˆط¹
     yearOfProject = models.IntegerField()
 
     Description = models.TextField(blank=True, null=True)
@@ -98,6 +98,8 @@ class Projects(models.Model):
         blank=True,
         null=True
     )
+    final_word_file = models.FileField(upload_to='final_docs/', blank=True, null=True)
+    final_zip_file = models.FileField(upload_to='final_code/', blank=True, null=True)
 
     UploadDate = models.DateTimeField(auto_now_add=True)
 
@@ -107,7 +109,7 @@ class Projects(models.Model):
         null=True
     )
 
-    # نوع المشروع (تخرج / حلقة بحث / فصلي)
+    # ظ†ظˆط¹ ط§ظ„ظ…ط´ط±ظˆط¹ (طھط®ط±ط¬ / ط­ظ„ظ‚ط© ط¨ط­ط« / ظپطµظ„ظٹ)
     ProjectType = models.CharField(
         max_length=50,
         blank=True,
@@ -119,7 +121,7 @@ class Projects(models.Model):
         blank=True
     )
 
-    # حالة المشروع
+    # ط­ط§ظ„ط© ط§ظ„ظ…ط´ط±ظˆط¹
     status = models.CharField(
         max_length=50,
         null=True,
@@ -127,7 +129,7 @@ class Projects(models.Model):
         default='pending'
     )
 
-    # هل المشروع منشور
+    # ظ‡ظ„ ط§ظ„ظ…ط´ط±ظˆط¹ ظ…ظ†ط´ظˆط±
     is_published = models.BooleanField(default=False)
 
     classification = models.CharField(
@@ -137,13 +139,16 @@ class Projects(models.Model):
     )
 
     requested_at = models.DateTimeField(default=timezone.now)
+    edits_approved = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
+    final_score_visible = models.BooleanField(default=True)
 
     def __str__(self):
         return self.ProjectName
 class Ratings(models.Model):
-    Creativity = models.IntegerField() # الإبداع
-    Implementation = models.IntegerField() # التنفيذ
-    Functionality = models.IntegerField() # الوظائف
+    Creativity = models.IntegerField() # ط§ظ„ط¥ط¨ط¯ط§ط¹
+    Implementation = models.IntegerField() # ط§ظ„طھظ†ظپظٹط°
+    Functionality = models.IntegerField() # ط§ظ„ظˆط¸ط§ط¦ظپ
     Interface = models.IntegerField()
     ProjectID = models.ForeignKey(Projects, on_delete=models.CASCADE)
     SupervisorID  = models.ForeignKey(Supervisor , on_delete=models.CASCADE)
@@ -166,10 +171,10 @@ class ProjectMedia(models.Model):
 
 
 
-# --- اضافة للمحادثات/الملفات بين المشرف والطالب ---
+# --- ط§ط¶ط§ظپط© ظ„ظ„ظ…ط­ط§ط¯ط«ط§طھ/ط§ظ„ظ…ظ„ظپط§طھ ط¨ظٹظ† ط§ظ„ظ…ط´ط±ظپ ظˆط§ظ„ط·ط§ظ„ط¨ ---
 class ProjectConversationMessage(models.Model):
     project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='messages')
-    # إما مرسل طالب أو مرسل مشرف (نحافظ على بساطة الربط)
+    # ط¥ظ…ط§ ظ…ط±ط³ظ„ ط·ط§ظ„ط¨ ط£ظˆ ظ…ط±ط³ظ„ ظ…ط´ط±ظپ (ظ†ط­ط§ظپط¸ ط¹ظ„ظ‰ ط¨ط³ط§ط·ط© ط§ظ„ط±ط¨ط·)
     sender_student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
     sender_supervisor = models.ForeignKey(Supervisor, on_delete=models.CASCADE, null=True, blank=True)
     text = models.TextField(blank=True, null=True)
@@ -181,7 +186,7 @@ class ProjectConversationMessage(models.Model):
             return self.sender_supervisor.fullname
         if self.sender_student:
             return self.sender_student.fullname
-        return "مجهول"
+        return "ظ…ط¬ظ‡ظˆظ„"
 
 
 
@@ -197,3 +202,5 @@ class StudentDetails(models.Model):
 class Skills(models.Model):
     StudentDetail = models.ForeignKey(StudentDetails, on_delete=models.CASCADE)
     skill = models.CharField(max_length=50 , null= True , blank=True)
+
+

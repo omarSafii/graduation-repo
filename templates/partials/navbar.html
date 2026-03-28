@@ -1,0 +1,52 @@
+﻿<nav class="navbar navbar-expand-lg navbar-light sticky-top" style="background: rgba(255,255,255,0.96); backdrop-filter: blur(12px); border-bottom: 1px solid #dbe6f2;">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{% url 'index' %}" style="color:#15304f;">
+            <span class="d-inline-flex align-items-center justify-content-center" style="width:2.4rem;height:2.4rem;border-radius:0.9rem;background:linear-gradient(135deg,#0f6cbd,#5fa8e6);color:#fff;">
+                <i class="bi bi-mortarboard-fill"></i>
+            </span>
+            منصة مشاريع التخرج
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                <li class="nav-item"><a class="nav-link" href="{% url 'index' %}">الرئيسية</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a></li>
+                {% if userType == 'student' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'UploadProject' %}">تقديم طلب</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a></li>
+                {% endif %}
+                {% if userType == 'supervisor' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisor_requests' %}">طلبات الطلاب</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisor_projects' %}">المشاريع الإشرافية</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisorDashboard' %}">لوحة المشرف</a></li>
+                {% endif %}
+                {% if userType == 'admin' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'AdminDashboard' %}">لوحة الإدارة</a></li>
+                {% endif %}
+                {% if email %}
+                    <li class="nav-item dropdown ms-lg-2">
+                        <a class="nav-link dropdown-toggle btn btn-outline-primary px-3 mt-2 mt-lg-0" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>
+                            {{ fullname }}
+                            <span class="badge text-bg-light ms-1">{% if userType == 'student' %}طالب{% elif userType == 'supervisor' %}مشرف{% elif userType == 'admin' %}إدارة{% endif %}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow" aria-labelledby="userMenu">
+                            {% if userType == 'student' %}
+                                <li><a class="dropdown-item" href="{% url 'studentProfile' %}"><i class="bi bi-person-vcard me-2"></i>الملف الشخصي</a></li>
+                            {% elif userType == 'supervisor' %}
+                                <li><a class="dropdown-item" href="{% url 'supervisorDashboard' %}"><i class="bi bi-speedometer2 me-2"></i>لوحة التحكم</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" data-confirm-message="هل أنت متأكد من تسجيل الخروج؟" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>تسجيل الخروج</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item ms-lg-2"><a class="btn btn-primary mt-2 mt-lg-0" href="{% url 'login' %}">دخول / إنشاء حساب</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+

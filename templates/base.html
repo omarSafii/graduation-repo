@@ -1,21 +1,184 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الصفحة الرئيسية - منصة مشاريع التخرج</title>
-
-    <!-- bootstrap -->
+    <title>{% block title %}منصة مشاريع التخرججج{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand: #0f6cbd;
+            --brand-dark: #114a7d;
+            --brand-soft: #eef6ff;
+            --ink: #15304f;
+            --muted: #66758a;
+            --line: #dbe6f2;
+            --surface: #ffffff;
+            --page: #f4f8fc;
+        }
+        html, body { min-height: 100%; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: radial-gradient(circle at top, #fafdff 0%, var(--page) 45%, #eef3f8 100%);
+            color: var(--ink);
+        }
+        .btn, .form-control, .form-select, .card, .badge, .dropdown-menu, .modal-content { border-radius: 1rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--brand) 0%, #2b84cc 100%); border: none; }
+        .btn-primary:hover, .btn-primary:focus { background: linear-gradient(135deg, #0d5ea7 0%, #1d71b8 100%); }
+        .btn-outline-primary { border-color: var(--brand); color: var(--brand); }
+        .btn-outline-primary:hover { background: var(--brand); color: #fff; }
+        .surface-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 1.4rem;
+            box-shadow: 0 16px 40px rgba(17, 74, 125, 0.08);
+        }
+        .section-title { font-weight: 800; color: var(--ink); }
+        .section-subtitle { color: var(--muted); }
+        .page-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+        .quick-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.55rem 0.9rem;
+            background: var(--brand-soft);
+            color: var(--brand-dark);
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+        .alert { border-radius: 1rem; }
+        .confirm-hero {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 1.3rem;
+            background: linear-gradient(135deg,#0f6cbd,#69aee4);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 16px 30px rgba(15,108,189,0.24);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
 </head>
-
 <body>
+{% if not is_popup %}{% include 'partials/navbar.html' %}{% endif %}
+<div class="container pt-3">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% block content %}{% endblock %}
 
-{% block content %}
-{% endblock content %}
+<div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <div class="confirm-hero mx-auto mb-3"><i class="bi bi-shield-check"></i></div>
+                <h5 class="mb-2" id="globalConfirmTitle">تأكيد الإجراء</h5>
+                <p class="text-muted mb-0" id="globalConfirmMessage">هل تريد المتابعة؟</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary px-4" id="globalConfirmApprove">متابعة</button>
+            </div>
+        </div>
+    </div>
+</div>
 
+{% if not is_popup %}{% include 'partials/footer.html' %}{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function () {
+        const modalElement = document.getElementById('globalConfirmModal');
+        const messageElement = document.getElementById('globalConfirmMessage');
+        const approveButton = document.getElementById('globalConfirmApprove');
+        const confirmModal = modalElement ? new bootstrap.Modal(modalElement) : null;
+        let pendingAction = null;
+
+        function openConfirm(message, action) {
+            if (!confirmModal) {
+                action();
+                return;
+            }
+            pendingAction = action;
+            messageElement.textContent = message || 'هل تريد المتابعة؟';
+            confirmModal.show();
+        }
+
+        if (approveButton) {
+            approveButton.addEventListener('click', function () {
+                if (pendingAction) {
+                    const action = pendingAction;
+                    pendingAction = null;
+                    confirmModal.hide();
+                    action();
+                }
+            });
+        }
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-confirm-message]');
+            if (!trigger) return;
+
+            const form = trigger.closest('form');
+            const isLink = trigger.tagName === 'A';
+            const message = trigger.getAttribute('data-confirm-message');
+
+            if (trigger.dataset.confirmApproved === 'true') {
+                trigger.dataset.confirmApproved = 'false';
+                return;
+            }
+
+            event.preventDefault();
+
+            openConfirm(message, function () {
+                if (isLink) {
+                    window.location.href = trigger.getAttribute('href');
+                    return;
+                }
+                if (form) {
+                    trigger.dataset.confirmApproved = 'true';
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit(trigger);
+                    } else {
+                        form.submit();
+                    }
+                }
+            });
+        });
+
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+            const message = form.getAttribute('data-confirm-message');
+            if (!message || form.dataset.confirmApproved === 'true') {
+                form.dataset.confirmApproved = 'false';
+                return;
+            }
+            event.preventDefault();
+            openConfirm(message, function () {
+                form.dataset.confirmApproved = 'true';
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            });
+        });
+    })();
+</script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

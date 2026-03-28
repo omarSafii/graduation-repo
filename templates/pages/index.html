@@ -1,360 +1,120 @@
-{% load static %}
-{% include "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}الرئيسية{% endblock %}
+{% block extra_head %}
+<style>
+    .hero-panel {
+        background: linear-gradient(135deg,#103f6b 0%, #0f6cbd 55%, #69aee4 100%);
+        color: #fff;
+        border-radius: 2rem;
+        padding: 3rem;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(15,108,189,0.22);
+    }
+    .mini-card, .project-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.4rem;
+        box-shadow: 0 16px 40px rgba(17,74,125,0.08);
+        height: 100%;
+    }
+    .project-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 1.4rem 1.4rem 0 0; }
+</style>
+{% endblock %}
 {% block content %}
-    <link rel="stylesheet" href="{%static 'css/style.css'%}">
-    <style>
-        /* تحسينات بسيطة إضافية */
-        .feature-icon {
-            font-size: 2.5rem;
-            color: #0062be;
-            margin-bottom: 1rem;
-        }
-        .feature-card {
-            transition: transform 0.3s ease;
-            border: none;
-            background: #f8f9fa;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
-        }
-        .project-card {
-            transition: transform 0.3s ease;
-        }
-        .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 1rem 2rem rgba(0,0,0,0.1);
-        }
-        .badge-project-type {
-            background-color: #17a2b8;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-        }
-    </style>
-</head>
-<body>
-
-<!-- ==================== Navbar محسّن ==================== -->
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
-            <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-            <span>منصة مشاريع التخرج</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav align-items-center">
-                <!-- روابط عامة للجميع -->
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'index' %}">الرئيسية</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a>
-                </li>
-
-                <!-- روابط خاصة بالمشرف -->
-                {% if userType == 'supervisor' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'supervisor_requests' %}">طلبات الطلاب</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'supervisorDashboard' %}">لوحة التحكم</a>
-                </li>
-                {% endif %}
-
-                <!-- روابط خاصة بالطالب -->
-                {% if userType == 'student' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'UploadProject' %}">رفع مشروع</a>
-                </li>
-                {% endif %}
-
-                <!-- روابط خاصة بالأدمن -->
-                {% if userType == 'admin' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'AdminDashboard' %}">لوحة الأدمن</a>
-                </li>
-                {% endif %}
-
-                <!-- حساب المستخدم وقائمة منسدلة -->
-                {% if email == none %}
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-light text-primary ms-2 px-3" href="{% url 'login' %}">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> دخول / تسجيل
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle btn btn-light text-primary ms-2 px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i> {{ fullname }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            {% if userType == 'student' %}
-                                <li><a class="dropdown-item" href="{% url 'studentProfile' %}"><i class="bi bi-person me-2"></i>حسابي</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                            {% elif userType == 'supervisor' %}
-                                <li><a class="dropdown-item" href="{% url 'supervisorDashboard' %}"><i class="bi bi-speedometer2 me-2"></i>لوحة التحكم</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                            {% endif %}
-                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>تسجيل خروج</a></li>
-                        </ul>
-                    </li>
-                {% endif %}
-            </ul>
+<div class="container py-4">
+    <section class="hero-panel mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <h1 class="display-5 fw-bold mb-3">استكشف مشاريع التخرج وابدأ رحلتك بخطوات واضحة</h1>
+                <p class="lead mb-4">منصة موحدة للطلبات، الإشراف، التقييم، والتسليم النهائي بحيث يفهم الطالب والمشرف ما الذي يجب فعله في كل مرحلة.</p>
+                <div class="page-actions">
+                    <a href="{% url 'BrowseProjects' %}" class="btn btn-light btn-lg">تصفح المشاريع</a>
+                    {% if email == none %}
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">سجل للدخول أو أنشئ حساباً</a>
+                    {% elif userType == 'student' %}
+                        <a href="{% url 'UploadProject' %}" class="btn btn-outline-light btn-lg">تقديم طلب</a>
+                    {% elif userType == 'supervisor' %}
+                        <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-light btn-lg">لوحة المشرف</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="mini-card p-4 text-dark">
+                    <h4 class="h5 mb-3">ماذا ستجد هنا؟</h4>
+                    <div class="d-grid gap-2">
+                        <div class="quick-chip"><i class="bi bi-send"></i>تقديم طلب مشروع بخطوات مرتبة</div>
+                        <div class="quick-chip"><i class="bi bi-chat-dots"></i>مراسلات واضحة بين الطالب والمشرف</div>
+                        <div class="quick-chip"><i class="bi bi-cloud-arrow-up"></i>تسليم نهائي منظم بالملفات المطلوبة فقط</div>
+                        <div class="quick-chip"><i class="bi bi-star"></i>تقييمات أوضح وقراءة أسهل للدرجات</div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</nav>
+    </section>
 
-<!-- ==================== Hero Section (نفس الشيء مع تحسين بسيط) ==================== -->
-<section class="hero">
-    <div class="container">
-        <h1>استكشف أفضل مشاريع التخرج في جميع التخصصات</h1>
-        <p class="mt-3 lead">منصة شاملة لإدارة وعرض وتقييم مشاريع التخرج للطلاب الجامعيين، حيث يمكنك عرض مشروعك، والحصول على تقييمات من مشرفين خبراء، وبناء ملف أعمال احترافي.</p>
-        <div class="mt-4">
-            <a href="{% url 'BrowseProjects' %}" class="btn btn-light btn-lg me-3">
-                <i class="bi bi-eye me-2"></i>تصفح المشاريع
-            </a>
-
-            {% if email == none %}
-                <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
-                    <i class="bi bi-pencil-square me-2"></i>تقديم طلب مشروع
-                </a>
-            {% elif userType == 'student' %}
-                <a href="{% url 'UploadProject' %}" class="btn btn-outline-light btn-lg">
-                    <i class="bi bi-cloud-upload me-2"></i>رفع مشروع جديد
-                </a>
-            {% elif userType == 'supervisor' %}
-                <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-light btn-lg">
-                    <i class="bi bi-speedometer2 me-2"></i>لوحة المشرف
-                </a>
-            {% else %}
-                <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
-                    <i class="bi bi-pencil-square me-2"></i>رفع مشروع
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<!-- ==================== شريط الفلاتر (نفس الشيء) ==================== -->
-<div class="container mt-4">
-    <div class="p-3 rounded shadow-sm border bg-white">
-        <h5 class="mb-3 fw-bold">
-            <i class="bi bi-funnel me-2 text-primary"></i>تصفية المشاريع
-        </h5>
+    <section class="surface-card p-4 mb-4">
+        <h3 class="h5 mb-3">تصفية المشاريع المنشورة</h3>
         <form method="POST" action="{% url 'index' %}">
             {% csrf_token %}
-            <div class="row g-3 align-items-end">
+            <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label small text-muted">التخصص</label>
+                    <label class="form-label">التخصص</label>
                     <select name="majorID" class="form-select">
-                        <option value="" selected>كل التخصصات</option>
-                        {% for mj in majors %}
-                            <option value="{{ mj.id }}">{{ mj.major_name }}</option>
-                        {% endfor %}
+                        <option value="">كل التخصصات</option>
+                        {% for mj in majors %}<option value="{{ mj.id }}">{{ mj.major_name }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label small text-muted">نوع المشروع</label>
+                    <label class="form-label">نوع المشروع</label>
                     <select name="projectType" class="form-select">
-                        <option value="" selected>جميع الأنواع</option>
-                        <option value="تخرج">مشروع تخرج</option>
-                        <option value="فصلي">مشروع فصلي</option>
+                        <option value="">كل الأنواع</option>
+                        <option value="تخرج">تخرج</option>
+                        <option value="فصلي">فصلي</option>
                         <option value="حلقة بحث">حلقة بحث</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted">سنة المشروع</label>
+                <div class="col-md-4">
+                    <label class="form-label">السنة</label>
                     <select name="yearID" class="form-select">
-                        <option value="" selected>الكل</option>
-                        {% for year in years %}
-                            <option value="{{ year }}">{{ year }}</option>
-                        {% endfor %}
+                        <option value="">كل السنوات</option>
+                        {% for year in years %}<option value="{{ year }}">{{ year }}</option>{% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search me-1"></i> بحث
-                    </button>
-                </div>
             </div>
+            <button type="submit" class="btn btn-primary mt-3">تطبيق الفرز</button>
         </form>
-    </div>
-</div>
+    </section>
 
-<!-- ==================== قسم "لماذا منصتنا؟" (جديد) ==================== -->
-<section class="py-5">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold">لماذا منصة مشاريع التخرج؟</h2>
-            <p class="text-muted">نوفر لك بيئة متكاملة لعرض وتقييم مشاريع التخرج بكل احترافية</p>
+    <section>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="h4 mb-1">أحدث المشاريع المنشورة</h3>
+                <p class="section-subtitle mb-0">يمكن للزوار والطلاب والمشرفين تصفح هذه المشاريع دون قيود تسجيل دخول.</p>
+            </div>
+            <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-primary">عرض الكل</a>
         </div>
         <div class="row g-4">
-            <div class="col-md-3">
-                <div class="card feature-card h-100 text-center p-4">
-                    <div class="feature-icon">
-                        <i class="bi bi-eye"></i>
-                    </div>
-                    <h5>عرض واسع</h5>
-                    <p class="text-muted small">مشروعك يشوفه الآلاف من الطلاب والمشرفين وأصحاب العمل.</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card feature-card h-100 text-center p-4">
-                    <div class="feature-icon">
-                        <i class="bi bi-star"></i>
-                    </div>
-                    <h5>تقييم دقيق</h5>
-                    <p class="text-muted small">احصل على تقييمات من مشرفين مختصين حسب معايير واضحة.</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card feature-card h-100 text-center p-4">
-                    <div class="feature-icon">
-                        <i class="bi bi-chat-dots"></i>
-                    </div>
-                    <h5>تواصل مباشر</h5>
-                    <p class="text-muted small">نقاش فعال مع المشرفين وتبادل الملاحظات لتطوير مشروعك.</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card feature-card h-100 text-center p-4">
-                    <div class="feature-icon">
-                        <i class="bi bi-graph-up"></i>
-                    </div>
-                    <h5>فرص وظيفية</h5>
-                    <p class="text-muted small">ملف أعمالك يعرض أمام الشركات وأصحاب العمل الباحثين عن كفاءات.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ==================== أحدث المشاريع (بدل كل المشاريع) ==================== -->
-<section class="py-5 bg-light">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0 fw-bold">أحدث المشاريع</h2>
-            <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-primary">
-                عرض الكل <i class="bi bi-arrow-left me-1"></i>
-            </a>
-        </div>
-
-        <div class="row g-4">
-            {% for project in projects|slice:":3" %}  <!-- نأخذ أول 3 مشاريع فقط -->
-            <div class="col-md-4">
-                <div class="card project-card h-100 shadow-sm">
-                    <div class="project-image position-relative">
-                        {% if project.projectpictures_set.all %}
-                            <img src="{{ project.projectpictures_set.all.0.image.url }}" class="card-img-top" alt="مشروع {{ project.ProjectName }}" style="height:200px; object-fit:cover;">
-                        {% else %}
-                            <img src="https://via.placeholder.com/400x200?text=No+Image" class="card-img-top" alt="لا توجد صورة" style="height:200px; object-fit:cover;">
-                        {% endif %}
-                        {% if project.ProjectType %}
-                            <span class="badge bg-info position-absolute top-0 end-0 m-2">{{ project.ProjectType }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ project.ProjectName|truncatechars:50 }}</h5>
-                        <p class="card-text text-muted small">{{ project.Description|truncatechars:80 }}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-auto">
-                            <div>
-                                <i class="bi bi-building"></i>
-                                <small>{{ project.UniversityID.univ_name|truncatechars:15 }}</small>
-                            </div>
-                            <a href="{% url 'projectDetails' project.id %}" class="btn btn-sm btn-primary">التفاصيل</a>
+            {% for project in projects|slice:":3" %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="project-card overflow-hidden">
+                        {% with project.projectpictures_set.first as cover %}
+                            {% if cover %}
+                                <img src="{{ cover.image.url }}" alt="{{ project.ProjectName }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/900x500?text=Project" alt="{{ project.ProjectName }}">
+                            {% endif %}
+                        {% endwith %}
+                        <div class="p-4">
+                            <h4 class="h5">{{ project.ProjectName }}</h4>
+                            <p class="text-muted">{{ project.Description|truncatechars:120 }}</p>
+                            <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-primary btn-sm">تفاصيل المشروع</a>
                         </div>
                     </div>
                 </div>
-            </div>
             {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info">لا توجد مشاريع بعد.</div>
-            </div>
+                <div class="col-12"><div class="alert alert-info">لا توجد مشاريع منشورة حالياً.</div></div>
             {% endfor %}
         </div>
-
-        <div class="text-center mt-4">
-            <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-primary btn-lg">تصفح جميع المشاريع</a>
-        </div>
-    </div>
-</section>
-
-<!-- ==================== قسم الدعوة للتحرك (Call to Action) محسّن ==================== -->
-<section class="py-5" style="background: linear-gradient(135deg, #0062be 0%, #004a9e 100%); color: white;">
-    <div class="container text-center">
-        <h2 class="mb-4 fw-bold">انطلق بمشروعك إلى آفاق جديدة</h2>
-        <p class="lead mb-4">سواء كنت طالباً تبحث عن منصة لعرض مشروعك، أو مشرفاً ترغب في توجيه الطلاب، أو مستثمراً يبحث عن أفكار مبدعة – هنا المكان المناسب.</p>
-        <div>
-            {% if email == none %}
-                <a href="{% url 'login' %}" class="btn btn-light btn-lg me-3">ابدأ الآن مجاناً</a>
-                <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-light btn-lg">استكشف المشاريع</a>
-            {% elif userType == 'student' %}
-                <a href="{% url 'UploadProject' %}" class="btn btn-light btn-lg me-3">ارفع مشروعك الآن</a>
-                <a href="{% url 'MyProject' %}" class="btn btn-outline-light btn-lg">مشاريعي</a>
-            {% elif userType == 'supervisor' %}
-                <a href="{% url 'supervisor_requests' %}" class="btn btn-light btn-lg me-3">طلبات الطلاب</a>
-                <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-light btn-lg">لوحة التحكم</a>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<!-- ==================== Footer (نفس الشيء) ==================== -->
-<footer class="footer">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <h5>منصة مشاريع التخرج</h5>
-                <p class="text-muted mt-2">منصة شاملة لإدارة وعرض وتقييم مشاريع التخرج للطلاب الجامعيين، تهدف إلى تسهيل عملية عرض ومشاركة المعرفة بين الطلاب والمشرفين والمجتمع.</p>
-            </div>
-            <div class="col-md-2 mb-3">
-                <h5>روابط سريعة</h5>
-                <ul class="list-unstyled mt-2">
-                    <li><a href="{% url 'index' %}" class="text-muted text-decoration-none">الرئيسية</a></li>
-                    <li><a href="{% url 'BrowseProjects' %}" class="text-muted text-decoration-none">تصفح المشاريع</a></li>
-                    <li><a href="#" class="text-muted text-decoration-none">المميزات</a></li>
-                </ul>
-            </div>
-            <div class="col-md-2 mb-3">
-                <h5>الحساب</h5>
-                <ul class="list-unstyled mt-2">
-                    {% if userType == 'student' %}
-                    <li><a href="{% url 'studentProfile' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                    {% elif userType == 'supervisor' %}
-                    <li><a href="{% url 'supervisorDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                    {% elif userType == 'admin' %}
-                    <li><a href="{% url 'AdminDashboard' %}" class="text-muted text-decoration-none">حسابي</a></li>
-                    {% else %}
-                    <li><a href="{% url 'login' %}" class="text-muted text-decoration-none">إنشاء حساب / تسجيل الدخول</a></li>
-                    {% endif %}
-                </ul>
-            </div>
-            <div class="col-md-4 mb-3">
-                <h5>ابقَ على اتصال</h5>
-                <p class="text-muted mt-2">اشترك في نشرتنا الإخبارية للحصول على أحدث المشاريع والتحديثات</p>
-                <form class="d-flex mt-3">
-                    <input type="email" class="form-control me-2" placeholder="أدخل بريدك الإلكتروني">
-                    <button type="submit" class="btn btn-primary">اشتراك</button>
-                </form>
-                <div class="mt-3">
-                    <a href="#" class="text-muted me-3"><i class="bi bi-facebook fs-4"></i></a>
-                    <a href="#" class="text-muted me-3"><i class="bi bi-twitter fs-4"></i></a>
-                    <a href="#" class="text-muted me-3"><i class="bi bi-linkedin fs-4"></i></a>
-                    <a href="#" class="text-muted"><i class="bi bi-instagram fs-4"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="text-center mt-4 pt-3 border-top">
-            <p class="mb-0 text-muted">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-        </div>
-    </div>
-</footer>
-{% endblock content %}
+    </section>
+</div>
+{% endblock %}

@@ -1,233 +1,136 @@
-{% extends "base.html" %} 
-{% load static %} 
-
-{% block content %}
-
+﻿{% extends "base.html" %}
+{% block title %}تقديم طلب مشروع{% endblock %}
+{% block extra_head %}
 <style>
-  .student-badge {
-    display: inline-flex;
-    align-items: center;
-    background-color: #0062be;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 20px;
-    margin: 4px;
-    font-size: 14px;
-  }
-
-  .student-badge span {
-    margin-left: 8px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  body {
-    background-color: #f8f9fa;
-    min-height: 100vh;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  }
-
-  .navbar {
-    background-color: #0062be;
-  }
-
-  .form-control,
-  .form-select {
-    border-radius: 0.75rem;
-  }
-
-  .btn-custom {
-    border-radius: 0.75rem;
-    padding: 0.6rem 1.2rem;
-    font-weight: bold;
-  }
-
-  .btn-primary {
-    background-color: #0062be;
-    border-color: #0062be;
-  }
-
-  .btn-primary:hover {
-    background-color: #00509e;
-    border-color: #00509e;
-  }
-
-  .project-form {
-    background: white;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .form-section {
-    margin-bottom: 2rem;
-  }
-
-  .form-section h4 {
-    margin-bottom: 1rem;
-    color: #0062be;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 0.5rem;
-  }
+    .submit-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 45px rgba(17,74,125,0.08);
+        padding: 2rem;
+    }
+    .student-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #eef6ff;
+        color: #114a7d;
+        padding: 0.55rem 0.9rem;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+    .remove-chip {
+        border: 0;
+        background: transparent;
+        color: #114a7d;
+        font-weight: 800;
+    }
 </style>
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="section-title mb-2">تقديم طلب مشروع</h1>
+            <p class="section-subtitle mb-0">النموذج هنا مخصص لطلب الإشراف على مشروع جديد، وليس لرفع المشروع النهائي.</p>
+        </div>
+        <div class="page-actions">
+            <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">مشاريعي</a>
+            <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">تصفح المشاريع</a>
+        </div>
+    </div>
 
-<nav class="navbar navbar-expand-lg navbar-dark">
-  <div class="container">
-    <a class="navbar-brand" href="{% url 'index' %}">
-      منصة المشاريع الطلابية
-    </a>
-  </div>
-</nav>
-
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-lg-10">
-
-      {% if success_message %}
-        <div class="alert alert-success">{{ success_message }}</div>
-      {% endif %}
-
-      <form method="POST" action="{% url 'UploadProject' %}" enctype="multipart/form-data">        
+    <form method="POST" action="{% url 'UploadProject' %}" enctype="multipart/form-data" class="submit-card">
         {% csrf_token %}
-        <div class="project-form">
-          <h2 class="mb-4 text-center">تقديم طلب مشروع</h2>
-
-          <div class="form-section">
-            <div class="row g-3"> <div class="col-md-6">
-                <label class="form-label">القسم</label>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">التخصص</label>
                 <select name="department" class="form-select" required>
-                  <option value="">اختر القسم</option>
-                  {% for major in majors %}
-                    <option value="{{ major.id }}">{{ major.major_name }}</option>
-                  {% endfor %}
+                    <option value="">اختر التخصص</option>
+                    {% for major in majors %}<option value="{{ major.id }}">{{ major.major_name }}</option>{% endfor %}
                 </select>
-              </div>
-
-              <div class="col-md-6">
+            </div>
+            <div class="col-md-6">
                 <label class="form-label">نوع المشروع</label>
                 <select name="projectType" class="form-select" required>
-                  <option value="">اختر نوع المشروع</option>
-                  <option value="حلقة بحث">حلقة بحث</option>
-                  <option value="تخرج">تخرج</option>
-                  <option value="فصلي">فصلي</option>
+                    <option value="">اختر النوع</option>
+                    <option value="تخرج">تخرج</option>
+                    <option value="فصلي">فصلي</option>
+                    <option value="حلقة بحث">حلقة بحث</option>
                 </select>
-              </div>
-
-              <div class="col-md-6">
+            </div>
+            <div class="col-md-6">
                 <label class="form-label">سنة المشروع</label>
-                <input type="number" name="projectYear" class="form-control" required />
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">اسم المشروع باللغة العربية</label>
-                <input type="text" name="title_ar" class="form-control" required />
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">اسم المشروع باللغة الإنجليزية</label>
-                <input type="text" name="title_en" class="form-control" required />
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">زملاء المشروع (اختياري)</label>
-                <select class="form-select" id="studentSelect">
-                  <option value="">اختر زميل للمشروع</option>
-                  {% for s in all_students %}
-                    <option value="{{ s.id }}">
-                      {{ s.fullname }} {% if s.email %}- {{ s.email }}{% endif %}
-                    </option>
-                  {% endfor %}
-                </select>
-                <div id="selectedStudents" class="mt-2"></div>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">الدكتور المشرف</label>
+                <input type="number" name="projectYear" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">المشرف المطلوب</label>
                 <select name="supervisor" class="form-select" required>
-                  <option value="">اختر المشرف</option>
-                  {% for sup in supervisors %}
-                    <option value="{{ sup.id }}">{{ sup.fullname }}</option>
-                  {% endfor %}
+                    <option value="">اختر المشرف</option>
+                    {% for sup in supervisors %}<option value="{{ sup.id }}">{{ sup.fullname }}</option>{% endfor %}
                 </select>
-              </div>
-
-            </div> </div>
-
-          <div class="form-section">
-            <h4>تفاصيل المشروع</h4>
-
-            <div class="mb-3">
-              <label class="form-label">ملخص فكرة المشروع</label>
-              <textarea name="idea_summary" class="form-control" rows="3" required></textarea>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label">ما سيتم إنجازه</label>
-              <textarea name="what_will_be_done" class="form-control" rows="3" required></textarea>
+            <div class="col-md-6">
+                <label class="form-label">اسم المشروع بالعربية</label>
+                <input type="text" name="title_ar" class="form-control" required>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label">مراحل المشروع</label>
-              <textarea name="project_stages" class="form-control" rows="3" required></textarea>
+            <div class="col-md-6">
+                <label class="form-label">اسم المشروع بالإنجليزية</label>
+                <input type="text" name="title_en" class="form-control" required>
             </div>
-          </div>
-
-
-            <div class="text-center mt-4">
-    <form method="post" action="{% url 'index' %}">
-        {% csrf_token %}
-        <input type="submit" name="submitRequest" class="btn btn-primary btn-custom px-5" value="إرسال الطلب" />
+            <div class="col-12">
+                <label class="form-label">إضافة طلاب مشاركين</label>
+                <select class="form-select" id="studentSelect">
+                    <option value="">اختر طالباً لإضافته إلى المجموعة</option>
+                    {% for s in all_students %}<option value="{{ s.id }}">{{ s.fullname }} - {{ s.email }}</option>{% endfor %}
+                </select>
+                <div id="selectedStudents" class="d-flex flex-wrap gap-2 mt-3"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">ملخص الفكرة</label>
+                <textarea name="idea_summary" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">ما الذي سيتم إنجازه</label>
+                <textarea name="what_will_be_done" class="form-control" rows="5" required></textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">مراحل المشروع</label>
+                <textarea name="project_stages" class="form-control" rows="5" required></textarea>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-4">
+            <button type="submit" name="submitRequest" value="1" class="btn btn-primary">إرسال الطلب</button>
+            <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
     </form>
 </div>
-
-        </div>
-      </form>
-
-    </div>
-  </div>
-</div>
-
+{% endblock %}
+{% block extra_scripts %}
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const select = document.getElementById("studentSelect");
-    const container = document.getElementById("selectedStudents");
+    const select = document.getElementById('studentSelect');
+    const container = document.getElementById('selectedStudents');
 
-    select.addEventListener("change", function () {
-      const selectedOption = select.options[select.selectedIndex];
-      const studentId = selectedOption.value;
-      const studentName = selectedOption.text;
-
-      if (!studentId) return;
-
-      // منع التكرار
-      if (document.getElementById("student-" + studentId)) {
-        select.value = "";
-        return;
-      }
-
-      const badge = document.createElement("div");
-      badge.className = "student-badge";
-      badge.id = "student-" + studentId;
-
-      badge.innerHTML = `
-            ${studentName}
-            <span onclick="removeStudent('${studentId}')">✖</span>
-            <input type="hidden" name="collaborator" value="${studentId}">
-        `;
-
-      container.appendChild(badge);
-      select.value = "";
-    });
-  });
-
-  function removeStudent(id) {
-    const element = document.getElementById("student-" + id);
-    if (element) {
-      element.remove();
+    function removeStudent(id) {
+        const element = document.getElementById('student-' + id);
+        if (element) element.remove();
     }
-  }
-</script>
 
-{% endblock content %}
+    if (select) {
+        select.addEventListener('change', function () {
+            const option = this.options[this.selectedIndex];
+            const studentId = option.value;
+            if (!studentId || document.getElementById('student-' + studentId)) {
+                this.value = '';
+                return;
+            }
+            const chip = document.createElement('div');
+            chip.className = 'student-chip';
+            chip.id = 'student-' + studentId;
+            chip.innerHTML = '<span>' + option.text + '</span><button type="button" class="remove-chip" onclick="removeStudent(\'' + studentId + '\')">×</button><input type="hidden" name="collaborator" value="' + studentId + '">';
+            container.appendChild(chip);
+            this.value = '';
+        });
+    }
+</script>
+{% endblock %}
