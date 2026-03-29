@@ -11,19 +11,19 @@
         </button>
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                <li class="nav-item"><a class="nav-link" href="{% url 'index' %}">الرئيسية</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a></li>
+                <li class="nav-item"><a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'index' %}">الرئيسية</a></li>
+                <li class="nav-item"><a class="nav-link {% if '/BrowseProjects/' in request.path %}active{% endif %}" href="{% url 'BrowseProjects' %}">تصفح المشاريع</a></li>
                 {% if userType == 'student' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'UploadProject' %}">تقديم طلب</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'MyProject' %}">مشاريعي</a></li>
+                    <li class="nav-item"><a class="nav-link {% if '/UploadProject/' in request.path %}active{% endif %}" href="{% url 'UploadProject' %}">تقديم طلب</a></li>
+                    <li class="nav-item"><a class="nav-link {% if '/MyProject/' in request.path or '/project/' in request.path or '/complete_project/' in request.path %}active{% endif %}" href="{% url 'MyProject' %}">مشاريعي</a></li>
                 {% endif %}
                 {% if userType == 'supervisor' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisor_requests' %}">طلبات الطلاب</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisor_projects' %}">المشاريع الإشرافية</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'supervisorDashboard' %}">لوحة المشرف</a></li>
+                    <li class="nav-item"><a class="nav-link d-flex align-items-center gap-2 {% if '/supervisor/requests/' in request.path or '/student-requests/' in request.path %}active{% endif %}" href="{% url 'supervisor_requests' %}">طلبات الطلاب{% if pending_supervisor_requests_count > 0 %}<span class="badge rounded-pill text-bg-danger">{{ pending_supervisor_requests_count }}</span>{% endif %}</a></li>
+                    <li class="nav-item"><a class="nav-link {% if '/supervisor-projects/' in request.path or '/ProjectDetail/' in request.path or '/complete_project/' in request.path %}active{% endif %}" href="{% url 'supervisor_projects' %}">المشاريع الإشرافية</a></li>
+                    <li class="nav-item"><a class="nav-link {% if request.path == '/supervisor/' %}active{% endif %}" href="{% url 'supervisorDashboard' %}">لوحة المشرف</a></li>
                 {% endif %}
                 {% if userType == 'admin' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'AdminDashboard' %}">لوحة الإدارة</a></li>
+                    <li class="nav-item"><a class="nav-link {% if '/adminDashboard/' in request.path %}active{% endif %}" href="{% url 'AdminDashboard' %}">لوحة الإدارة</a></li>
                 {% endif %}
                 {% if email %}
                     <li class="nav-item dropdown ms-lg-2">
@@ -49,4 +49,3 @@
         </div>
     </div>
 </nav>
-

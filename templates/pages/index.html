@@ -53,20 +53,25 @@
     </section>
 
     <section class="surface-card p-4 mb-4">
-        <h3 class="h5 mb-3">تصفية المشاريع المنشورة</h3>
-        <form method="POST" action="{% url 'index' %}">
-            {% csrf_token %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="h5 mb-1">ابحث داخل المشاريع المنشورة</h3>
+                <p class="text-muted mb-0">اختر الفلاتر التي تريدها وسيتم نقلك مباشرة إلى صفحة تصفح المشاريع مع تطبيقها.</p>
+            </div>
+            <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-primary">فتح صفحة التصفح</a>
+        </div>
+        <form method="GET" action="{% url 'BrowseProjects' %}">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">التخصص</label>
-                    <select name="majorID" class="form-select">
+                    <select name="major" class="form-select">
                         <option value="">كل التخصصات</option>
                         {% for mj in majors %}<option value="{{ mj.id }}">{{ mj.major_name }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">نوع المشروع</label>
-                    <select name="projectType" class="form-select">
+                    <select name="project_type" class="form-select">
                         <option value="">كل الأنواع</option>
                         <option value="تخرج">تخرج</option>
                         <option value="فصلي">فصلي</option>
@@ -75,13 +80,16 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">السنة</label>
-                    <select name="yearID" class="form-select">
+                    <select name="year" class="form-select">
                         <option value="">كل السنوات</option>
                         {% for year in years %}<option value="{{ year }}">{{ year }}</option>{% endfor %}
                     </select>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary mt-3">تطبيق الفرز</button>
+            <div class="d-flex gap-2 flex-wrap mt-3">
+                <button type="submit" class="btn btn-primary">تطبيق الفلاتر في صفحة التصفح</button>
+                <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">عرض كل المشاريع بدون فلاتر</a>
+            </div>
         </form>
     </section>
 

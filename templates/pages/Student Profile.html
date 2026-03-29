@@ -72,6 +72,12 @@
                                     {% if project.status == 'accepted' and not project.is_completed %}
                                         <a href="{% url 'complete_project' project.id %}" class="btn btn-primary btn-sm">المتابعة</a>
                                     {% endif %}
+                                    {% if project.can_resubmit %}
+                                        <a href="{% url 'UploadProject' %}?edit={{ project.id }}" class="btn btn-warning btn-sm">تعديل وإعادة الإرسال</a>
+                                    {% endif %}
+                                    {% if project.can_leave %}
+                                        <a href="{% url 'leave_project' project.id %}" class="btn btn-outline-danger btn-sm" data-confirm-message="هل أنت متأكد من إلغاء مشاركتك في هذا المشروع؟">إلغاء المشاركة</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -84,3 +90,4 @@
     </div>
 </div>
 {% endblock %}
+

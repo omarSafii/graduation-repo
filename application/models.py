@@ -30,6 +30,7 @@ class Student(BaseUser):
     grade_year = models.IntegerField()
     department = models.ForeignKey(Major , on_delete=models.CASCADE)
     university = models.ForeignKey(University , on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.fullname
@@ -42,6 +43,9 @@ class Supervisor(BaseUser):
     position = models.CharField(max_length=100)
     department = models.ForeignKey(Major , on_delete=models.CASCADE)
     university = models.ForeignKey(University , on_delete=models.CASCADE , blank=True , null=True)
+    university_id_card = models.FileField(upload_to='supervisor_ids/', blank=True, null=True)
+    approval_status = models.CharField(max_length=20, default='pending')
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.fullname
@@ -139,6 +143,8 @@ class Projects(models.Model):
     )
 
     requested_at = models.DateTimeField(default=timezone.now)
+    rejection_reason = models.TextField(blank=True, null=True)
+    resubmitted_at = models.DateTimeField(blank=True, null=True)
     edits_approved = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
     final_score_visible = models.BooleanField(default=True)
@@ -202,5 +208,8 @@ class StudentDetails(models.Model):
 class Skills(models.Model):
     StudentDetail = models.ForeignKey(StudentDetails, on_delete=models.CASCADE)
     skill = models.CharField(max_length=50 , null= True , blank=True)
+
+
+
 
 

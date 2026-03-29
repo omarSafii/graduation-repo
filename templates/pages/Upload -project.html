@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}تقديم طلب مشروع{% endblock %}
+{% block title %}{% if edit_project %}تعديل الطلب وإعادة إرساله{% else %}تقديم طلب مشروع{% endif %}{% endblock %}
 {% block extra_head %}
 <style>
     .submit-card {
@@ -31,8 +31,8 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
-            <h1 class="section-title mb-2">تقديم طلب مشروع</h1>
-            <p class="section-subtitle mb-0">النموذج هنا مخصص لطلب الإشراف على مشروع جديد، وليس لرفع المشروع النهائي.</p>
+            <h1 class="section-title mb-2">{% if edit_project %}تعديل الطلب وإعادة إرساله{% else %}تقديم طلب مشروع{% endif %}</h1>
+            <p class="section-subtitle mb-0">يمكن للطالب الأساسي إضافة حتى طالبين فقط معه، أما حلقة البحث فتكون لطالب واحد فقط.</p>
         </div>
         <div class="page-actions">
             <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">مشاريعي</a>
@@ -40,67 +40,88 @@
         </div>
     </div>
 
+    {% if edit_project and edit_project.rejection_reason %}
+        <div class="alert alert-danger mb-4"><strong>سبب الرفض السابق:</strong> {{ edit_project.rejection_reason }}</div>
+    {% endif %}
+
     <form method="POST" action="{% url 'UploadProject' %}" enctype="multipart/form-data" class="submit-card">
         {% csrf_token %}
+        {% if edit_project %}<input type="hidden" name="project_id" value="{{ edit_project.id }}">{% endif %}
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label">التخصص</label>
                 <select name="department" class="form-select" required>
                     <option value="">اختر التخصص</option>
-                    {% for major in majors %}<option value="{{ major.id }}">{{ major.major_name }}</option>{% endfor %}
+                    {% for major in majors %}<option value="{{ major.id }}" {% if request_data.department == major.id|stringformat:'s' %}selected{% endif %}>{{ major.major_name }}</option>{% endfor %}
                 </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label">نوع المشروع</label>
-                <select name="projectType" class="form-select" required>
+                <select name="projectType" id="projectTypeSelect" class="form-select" required>
                     <option value="">اختر النوع</option>
-                    <option value="تخرج">تخرج</option>
-                    <option value="فصلي">فصلي</option>
-                    <option value="حلقة بحث">حلقة بحث</option>
+                    <option value="تخرج" {% if request_data.projectType == 'تخرج' %}selected{% endif %}>تخرج</option>
+                    <option value="فصلي" {% if request_data.projectType == 'فصلي' %}selected{% endif %}>فصلي</option>
+                    <option value="حلقة بحث" {% if request_data.projectType == 'حلقة بحث' %}selected{% endif %}>حلقة بحث</option>
                 </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label">سنة المشروع</label>
-                <input type="number" name="projectYear" class="form-control" required>
+                <select name="projectYear" class="form-select" required>
+                    <option value="">اختر السنة</option>
+                    {% for year in years %}<option value="{{ year }}" {% if request_data.projectYear == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>{% endfor %}
+                </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label">المشرف المطلوب</label>
                 <select name="supervisor" class="form-select" required>
                     <option value="">اختر المشرف</option>
-                    {% for sup in supervisors %}<option value="{{ sup.id }}">{{ sup.fullname }}</option>{% endfor %}
+                    {% for sup in supervisors %}<option value="{{ sup.id }}" {% if request_data.supervisor == sup.id|stringformat:'s' %}selected{% endif %}>{{ sup.fullname }}</option>{% endfor %}
                 </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label">اسم المشروع بالعربية</label>
-                <input type="text" name="title_ar" class="form-control" required>
+                <input type="text" name="title_ar" class="form-control" value="{{ request_data.title_ar|default:'' }}" required>
             </div>
             <div class="col-md-6">
                 <label class="form-label">اسم المشروع بالإنجليزية</label>
-                <input type="text" name="title_en" class="form-control" required>
+                <input type="text" name="title_en" class="form-control" value="{{ request_data.title_en|default:'' }}" required>
             </div>
             <div class="col-12">
-                <label class="form-label">إضافة طلاب مشاركين</label>
-                <select class="form-select" id="studentSelect">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <label class="form-label mb-0">إضافة طلاب مشاركين</label>
+                    <small class="text-muted" id="teamHint">يمكنك إضافة طالبين كحد أقصى.</small>
+                </div>
+                <select class="form-select mt-2" id="studentSelect">
                     <option value="">اختر طالباً لإضافته إلى المجموعة</option>
                     {% for s in all_students %}<option value="{{ s.id }}">{{ s.fullname }} - {{ s.email }}</option>{% endfor %}
                 </select>
-                <div id="selectedStudents" class="d-flex flex-wrap gap-2 mt-3"></div>
+                <div id="selectedStudents" class="d-flex flex-wrap gap-2 mt-3">
+                    {% for s in all_students %}
+                        {% if s.id in selected_collaborator_ids %}
+                            <div class="student-chip" id="student-{{ s.id }}">
+                                <span>{{ s.fullname }} - {{ s.email }}</span>
+                                <button type="button" class="remove-chip" onclick="removeStudent('{{ s.id }}')">x</button>
+                                <input type="hidden" name="collaborator" value="{{ s.id }}">
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
             <div class="col-12">
                 <label class="form-label">ملخص الفكرة</label>
-                <textarea name="idea_summary" class="form-control" rows="3" required></textarea>
+                <textarea name="idea_summary" class="form-control" rows="3" required>{{ request_data.idea_summary|default:'' }}</textarea>
             </div>
             <div class="col-md-6">
                 <label class="form-label">ما الذي سيتم إنجازه</label>
-                <textarea name="what_will_be_done" class="form-control" rows="5" required></textarea>
+                <textarea name="what_will_be_done" class="form-control" rows="5" required>{{ request_data.what_will_be_done|default:'' }}</textarea>
             </div>
             <div class="col-md-6">
                 <label class="form-label">مراحل المشروع</label>
-                <textarea name="project_stages" class="form-control" rows="5" required></textarea>
+                <textarea name="project_stages" class="form-control" rows="5" required>{{ request_data.project_stages|default:'' }}</textarea>
             </div>
         </div>
         <div class="d-flex gap-2 flex-wrap mt-4">
-            <button type="submit" name="submitRequest" value="1" class="btn btn-primary">إرسال الطلب</button>
+            <button type="submit" name="submitRequest" value="1" class="btn btn-primary">{% if edit_project %}تعديل وإعادة إرسال الطلب{% else %}إرسال الطلب{% endif %}</button>
             <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">إلغاء</a>
         </div>
     </form>
@@ -110,27 +131,68 @@
 <script>
     const select = document.getElementById('studentSelect');
     const container = document.getElementById('selectedStudents');
+    const projectTypeSelect = document.getElementById('projectTypeSelect');
+    const teamHint = document.getElementById('teamHint');
+
+    function selectedCount() {
+        return container.querySelectorAll('input[name="collaborator"]').length;
+    }
 
     function removeStudent(id) {
         const element = document.getElementById('student-' + id);
         if (element) element.remove();
+        refreshCollaboratorState();
+    }
+
+    function refreshCollaboratorState() {
+        const isResearch = projectTypeSelect.value === 'حلقة بحث';
+        const maxStudents = isResearch ? 0 : 2;
+        const count = selectedCount();
+        select.disabled = isResearch || count >= maxStudents;
+
+        if (isResearch) {
+            teamHint.textContent = 'حلقة البحث تُرسل من طالب واحد فقط دون إضافة طلاب مشاركين.';
+        } else {
+            teamHint.textContent = 'يمكنك إضافة ' + (maxStudents - count) + ' طلاب إضافيين كحد أقصى.';
+        }
+    }
+
+    function clearCollaborators() {
+        container.innerHTML = '';
+    }
+
+    if (projectTypeSelect) {
+        projectTypeSelect.addEventListener('change', function () {
+            if (this.value === 'حلقة بحث') {
+                clearCollaborators();
+            }
+            refreshCollaboratorState();
+        });
     }
 
     if (select) {
         select.addEventListener('change', function () {
             const option = this.options[this.selectedIndex];
             const studentId = option.value;
-            if (!studentId || document.getElementById('student-' + studentId)) {
+            const isResearch = projectTypeSelect.value === 'حلقة بحث';
+            const maxStudents = isResearch ? 0 : 2;
+
+            if (!studentId || document.getElementById('student-' + studentId) || selectedCount() >= maxStudents) {
                 this.value = '';
+                refreshCollaboratorState();
                 return;
             }
+
             const chip = document.createElement('div');
             chip.className = 'student-chip';
             chip.id = 'student-' + studentId;
-            chip.innerHTML = '<span>' + option.text + '</span><button type="button" class="remove-chip" onclick="removeStudent(\'' + studentId + '\')">×</button><input type="hidden" name="collaborator" value="' + studentId + '">';
+            chip.innerHTML = '<span>' + option.text + '</span><button type="button" class="remove-chip" onclick="removeStudent(\'' + studentId + '\')">x</button><input type="hidden" name="collaborator" value="' + studentId + '">';
             container.appendChild(chip);
             this.value = '';
+            refreshCollaboratorState();
         });
     }
+
+    refreshCollaboratorState();
 </script>
 {% endblock %}

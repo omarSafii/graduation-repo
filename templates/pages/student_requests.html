@@ -22,7 +22,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
             <h1 class="section-title mb-2">طلبات الطلاب</h1>
-            <p class="section-subtitle mb-0">البطاقات تعرض ملخصاً واضحاً للطلب والطلاب المشاركين، مع أزرار قرار مباشرة وواضحة.</p>
+            <p class="section-subtitle mb-0">يمكنك الآن رؤية الطلبات الجديدة والطلبات التي أعاد الطلاب تعديلها وإرسالها من جديد.</p>
         </div>
         <div class="page-actions">
             <a href="{% url 'supervisorDashboard' %}" class="btn btn-outline-secondary">لوحة المشرف</a>
@@ -45,7 +45,12 @@
                             <h4 class="h5 mb-1">{{ project.ProjectName }}</h4>
                             <small class="text-muted">أُرسل في {{ project.requested_at|date:"Y-m-d H:i" }}</small>
                         </div>
-                        <span class="badge {% if project.status == 'pending' %}text-bg-warning{% else %}text-bg-danger{% endif %}">{% if project.status == 'pending' %}طلب جديد{% else %}مرفوض سابقاً{% endif %}</span>
+                        <div class="d-flex gap-2 flex-wrap">
+                            {% if project.resubmitted_at and project.status == 'pending' %}
+                                <span class="badge text-bg-info">أُعيد التقديم بعد التعديل</span>
+                            {% endif %}
+                            <span class="badge {% if project.status == 'pending' %}text-bg-warning{% else %}text-bg-danger{% endif %}">{% if project.status == 'pending' %}بانتظار القرار{% else %}مرفوض سابقاً{% endif %}</span>
+                        </div>
                     </div>
                     <div class="request-body">
                         <div class="mb-3">
@@ -56,21 +61,25 @@
                             <div class="col-md-6"><div class="surface-card p-3 h-100"><div class="text-muted small mb-1">التخصص</div><strong>{{ project.request_submission.major }}</strong></div></div>
                             <div class="col-md-6"><div class="surface-card p-3 h-100"><div class="text-muted small mb-1">المشرف المختار</div><strong>{{ project.request_submission.supervisor_name }}</strong></div></div>
                         </div>
-                        <p class="text-muted mb-4">{{ project.request_submission.idea_summary|truncatechars:160 }}</p>
-                        <div class="d-flex gap-2 flex-wrap">
+                        <p class="text-muted mb-3">{{ project.request_submission.idea_summary|truncatechars:160 }}</p>
+                        {% if project.rejection_reason %}
+                            <div class="alert alert-danger py-2"><strong>سبب الرفض السابق:</strong> {{ project.rejection_reason }}</div>
+                        {% endif %}
+                        <div class="d-flex gap-2 flex-wrap align-items-start">
                             {% if project.status == 'pending' %}
-                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}" data-confirm-message="هل أنت متأكد من قبول هذا الطلب؟">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="accept">
                                     <button type="submit" class="btn btn-success">قبول الطلب</button>
                                 </form>
-                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}" class="flex-grow-1">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="reject">
-                                    <button type="submit" class="btn btn-outline-danger">رفض الطلب</button>
+                                    <textarea name="rejection_reason" class="form-control mb-2" rows="2" placeholder="اكتب سبب الرفض ليظهر للطلاب ويستطيعوا تعديل الطلب"></textarea>
+                                    <button type="submit" class="btn btn-outline-danger">رفض الطلب مع إرسال السبب</button>
                                 </form>
                             {% else %}
-                                <form method="post" action="{% url 'supervisor_decide' project.id %}">
+                                <form method="post" action="{% url 'supervisor_decide' project.id %}" data-confirm-message="هل أنت متأكد من إعادة قبول هذا الطلب؟">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="accept">
                                     <button type="submit" class="btn btn-warning">إعادة القبول</button>
@@ -87,5 +96,3 @@
     </div>
 </div>
 {% endblock %}
-
-

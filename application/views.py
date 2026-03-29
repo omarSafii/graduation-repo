@@ -150,51 +150,50 @@ def _parse_request_submission(project):
 def login(request):
     universities = University.objects.all()
     majors = Major.objects.all()
-    
+
     if request.method == 'POST':
-        # --- قسم تسجيل الدخول ---
-        if request.POST.get("loginBtn") is not None:
+        if request.POST.get('loginBtn') is not None:
             email = request.POST.get('email')
             password = request.POST.get('password')
-            
-            print(f"--- محاولة دخول بالإيميل: {email} والباسورد: {password} ---")
 
-            # 1. ابحث عن الطالب بالإيميل أولاً
             student = Student.objects.filter(email=email).first()
             if student:
-                print(f"تم إيجاد طالب بهذا الإيميل. الباسورد المخزن هو: {student.password}")
+                if not student.is_active:
+                    return render(request, 'pages/login.html', {'msg': 'تم تعطيل هذا الحساب من قبل الإدارة.', 'unvs': universities, 'majors': majors})
                 if student.password == password:
-                    request.session['email'] = email 
+                    request.session['email'] = email
                     request.session['fullname'] = student.fullname
-                    request.session['userType'] = "student"
+                    request.session['userType'] = 'student'
                     return redirect('/')
-                else:
-                    return render(request, 'pages/login.html', {'msg': 'كلمة المرور غير صحيحة للطالب', 'unvs': universities, 'majors': majors})
-                
-            # 2. ابحث في المشرفين بالإيميل
+                return render(request, 'pages/login.html', {'msg': 'كلمة المرور غير صحيحة للطالب', 'unvs': universities, 'majors': majors})
+
             supervisor = Supervisor.objects.filter(email=email).first()
             if supervisor:
-                print(f"تم إيجاد مشرف بهذا الإيميل. الباسورد المخزن هو: '{supervisor.password}'")
-                print(f"الباسورد المدخل هو: '{password}'")
-                print(f"هل الباسوردين متطابقين؟ {supervisor.password == password}")
-                
-                # تحقق من تطابق الباسورد بحذر
+                if supervisor.approval_status == 'pending':
+                    return render(request, 'pages/login.html', {'msg': 'طلب إنشاء هذا الحساب ما زال قيد المراجعة من المسؤول العام.', 'unvs': universities, 'majors': majors})
+                if supervisor.approval_status == 'rejected':
+                    return render(request, 'pages/login.html', {'msg': 'تم رفض طلب إنشاء حساب المشرف. يرجى مراجعة المسؤول العام.', 'unvs': universities, 'majors': majors})
+                if not supervisor.is_active:
+                    return render(request, 'pages/login.html', {'msg': 'تم تعطيل هذا الحساب من قبل الإدارة.', 'unvs': universities, 'majors': majors})
                 if supervisor.password == password:
-                    request.session['email'] = email 
+                    request.session['email'] = email
                     request.session['fullname'] = supervisor.fullname
-                    request.session['userType'] = "supervisor"
-                    print("✅ تم تسجيل دخول المشرف بنجاح!")
+                    request.session['userType'] = 'supervisor'
                     return redirect('/')
-                else:
-                    print("❌ الباسورد غير متطابق")
-                    return render(request, 'pages/login.html', {'msg': 'كلمة المرور غير صحيحة للمشرف', 'unvs': universities, 'majors': majors})
-            
-            # إذا لم يجد شيئاً أبداً
-            print("لم يتم إيجاد أي مستخدم بهذا الإيميل في قاعدة البيانات")
+                return render(request, 'pages/login.html', {'msg': 'كلمة المرور غير صحيحة للمشرف', 'unvs': universities, 'majors': majors})
+
+            admin_user = AdminUser.objects.filter(email=email).first()
+            if admin_user:
+                if admin_user.password == password:
+                    request.session['email'] = email
+                    request.session['fullname'] = admin_user.fullname
+                    request.session['userType'] = 'admin'
+                    return redirect('/adminDashboard/')
+                return render(request, 'pages/login.html', {'msg': 'كلمة المرور غير صحيحة للمسؤول العام', 'unvs': universities, 'majors': majors})
+
             return render(request, 'pages/login.html', {'msg': 'هذا الإيميل غير مسجل في النظام', 'unvs': universities, 'majors': majors})
 
-        # --- قسم إنشاء الحساب (كما هو مع إصلاح exists) ---
-        elif request.POST.get("createAccount") is not None:
+        elif request.POST.get('createAccount') is not None:
             userType = request.POST.get('type')
             email = request.POST.get('email')
             password = request.POST.get('password')
@@ -203,86 +202,72 @@ def login(request):
             if password != rpassword:
                 return render(request, 'pages/login.html', {'msg': 'كلمات المرور غير متطابقة', 'unvs': universities, 'majors': majors})
 
-            if Student.objects.filter(email=email).exists() or Supervisor.objects.filter(email=email).exists():
+            existing_rejected_supervisor = Supervisor.objects.filter(email=email, approval_status='rejected').first()
+            if Student.objects.filter(email=email).exists() or AdminUser.objects.filter(email=email).exists() or Supervisor.objects.filter(email=email).exclude(approval_status='rejected').exists():
                 return render(request, 'pages/login.html', {'msg': 'الإيميل مسجل مسبقاً، حاول الدخول', 'unvs': universities, 'majors': majors})
 
             if userType == 'student':
                 try:
                     mj_obj = Major.objects.get(id=int(request.POST.get('StudentMajor')))
+                    student_id_value = (request.POST.get('studentID') or '').strip()
+                    if Student.objects.filter(student_id=student_id_value).exists():
+                        return render(request, 'pages/login.html', {'msg': 'الرقم الجامعي مستخدم مسبقاً، يرجى إدخال رقم جامعي مختلف.', 'unvs': universities, 'majors': majors})
                     unv_obj = University.objects.get(id=int(request.POST.get('StudentUniversity')))
-                    
                     student = Student.objects.create(
                         fullname=request.POST.get('StudentFullName'),
                         password=password,
                         email=email,
-                        student_id=request.POST.get('studentID'),
+                        student_id=student_id_value,
                         grade_year=request.POST.get('graduationYear'),
                         department=mj_obj,
-                        university=unv_obj
+                        university=unv_obj,
+                        is_active=True,
                     )
                     StudentDetails.objects.create(studentID=student)
                     request.session['email'] = email
                     request.session['fullname'] = student.fullname
-                    request.session['userType'] = "student"
+                    request.session['userType'] = 'student'
                     return redirect('/')
-                except Exception as e:
-                    print(f"خطأ أثناء إنشاء الحساب: {e}")
+                except Exception:
                     return render(request, 'pages/login.html', {'msg': 'تأكد من اختيار الجامعة والتخصص وملء كافة الحقول', 'unvs': universities, 'majors': majors})
-            
-            # â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡â¬‡
-            # ⭐⭐ هذا القسم اللي ناقص: إنشاء حساب المشرف ⭐⭐
-            # â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†â¬†
-            
+
             elif userType == 'supervisor':
                 try:
-                    print(f"⭐ محاولة إنشاء حساب مشرف جديد:")
-                    print(f"   📧 الإيميل: {email}")
-                    print(f"   🔐 الباسورد: '{password}'")
-                    print(f"   🏛️ الجامعة ID: {request.POST.get('supervisorUniversity')}")
-                    print(f"   📚 القسم ID: {request.POST.get('supervisordepartment')}")
-                    
-                    # جلب كائنات الجامعة والقسم
                     university = University.objects.get(id=int(request.POST.get('supervisorUniversity')))
                     department = Major.objects.get(id=int(request.POST.get('supervisordepartment')))
-                    
-                    # إنشاء حساب المشرف
-                    supervisor = Supervisor.objects.create(
-                        fullname=request.POST.get('supervisorName'),
-                        email=email,
-                        password=password,  # ⚠ تأكد الباسورد يخزن نفس اللي دخلت
-                        position='Supervisor',
-                        department=department,
-                        university=university
-                    )
-                    
-                    print(f"✅ تم إنشاء حساب المشرف بنجاح!")
-                    print(f"   👤 الاسم: {supervisor.fullname}")
-                    print(f"   📧 الإيميل: {supervisor.email}")
-                    print(f"   🔐 الباسورد المخزن: '{supervisor.password}'")
-                    
-                    # تسجيل دخول تلقائي
-                    request.session['email'] = email
-                    request.session['fullname'] = supervisor.fullname
-                    request.session['userType'] = "supervisor"
-                    print("✅ تم تسجيل دخول المشرف تلقائياً!")
-                    
-                    return redirect('/')
-                    
-                except Exception as e:
-                    print(f"❌ خطأ في إنشاء حساب المشرف: {e}")
-                    return render(request, 'pages/login.html', {'msg': 'خطأ في إنشاء حساب المشرف. تأكد من البيانات', 'unvs': universities, 'majors': majors})
+                    supervisor_id_card = request.FILES.get('supervisorUniversityCard')
+                    if existing_rejected_supervisor:
+                        existing_rejected_supervisor.fullname = request.POST.get('supervisorName')
+                        existing_rejected_supervisor.password = password
+                        existing_rejected_supervisor.position = 'Supervisor'
+                        existing_rejected_supervisor.department = department
+                        existing_rejected_supervisor.university = university
+                        if supervisor_id_card:
+                            existing_rejected_supervisor.university_id_card = supervisor_id_card
+                        existing_rejected_supervisor.approval_status = 'pending'
+                        existing_rejected_supervisor.is_active = True
+                        existing_rejected_supervisor.save()
+                        messages.success(request, 'تم تحديث طلب المشرف وإعادة إرساله بنجاح، وهو الآن بانتظار موافقة المسؤول العام.')
+                    else:
+                        Supervisor.objects.create(
+                            fullname=request.POST.get('supervisorName'),
+                            email=email,
+                            password=password,
+                            position='Supervisor',
+                            department=department,
+                            university=university,
+                            university_id_card=supervisor_id_card,
+                            approval_status='pending',
+                            is_active=True,
+                        )
+                        messages.success(request, 'تم إرسال طلب إنشاء حساب المشرف بنجاح، وهو الآن بانتظار موافقة المسؤول العام.')
+                    return redirect('login')
+                except Exception:
+                    return render(request, 'pages/login.html', {'msg': 'خطأ في إنشاء حساب المشرف. تأكد من البيانات ورفع البطاقة الجامعية.', 'unvs': universities, 'majors': majors})
 
         return render(request, 'pages/login.html', {'unvs': universities, 'majors': majors})
-    
+
     return render(request, 'pages/login.html', {'unvs': universities, 'majors': majors})
-
-
-
-
-from django.contrib import messages  # استيراد الرسائل
-
-
-
 @csrf_protect
 def supervisor_finish(request, project_id):
     if 'email' not in request.session or request.session.get('userType') != 'supervisor':
@@ -393,6 +378,10 @@ def projectDetails(request, id):
     videos = ProjectMedia.objects.filter(ProjectID=project)
     participant_students = _project_students(project)
     request_submission = _parse_request_submission(project)
+    has_final_submission = bool(
+        project.final_word_file or project.final_zip_file or project.pdf_file or
+        pictures.exists() or videos.exists()
+    )
 
     session_email = request.session.get('email')
     session_user_type = request.session.get('userType')
@@ -425,22 +414,28 @@ def projectDetails(request, id):
         'request_submission': request_submission,
         'can_open_evaluation': can_open_evaluation,
         'is_supervisor_reviewing_request': is_supervisor_reviewing_request,
+        'selected_stars': selected_stars,
+        'can_manage_final_score': can_manage_final_score,
+        'final_word_file': project.final_word_file,
+        'final_zip_file': project.final_zip_file,
+        'has_final_submission': has_final_submission,
     }
 
     return render(request, 'pages/Project Details.html', data)
-
 @csrf_protect
 def UploadProject(request):
-    # لازم المستخدم مسجل وطالب
     if 'email' not in request.session or request.session.get('userType') != 'student':
         return redirect('login')
 
     student_obj = Student.objects.get(email=request.session['email'])
+    edit_project = None
+    edit_id = request.GET.get('edit') or request.POST.get('project_id')
+    if edit_id:
+        candidate_project = Projects.objects.filter(id=edit_id, status='rejected', is_completed=False).first()
+        if candidate_project and _is_project_participant(candidate_project, student_obj):
+            edit_project = candidate_project
 
     if request.method == "POST":
-        # ---------------------------
-        # 1) ارسال طلب المشروع (الفورم الجديد) -> name="submitRequest"
-        # ---------------------------
         if request.POST.get('submitRequest'):
             major_id = request.POST.get('department')
             project_type = request.POST.get('projectType')
@@ -451,8 +446,27 @@ def UploadProject(request):
             idea = request.POST.get('idea_summary')
             what = request.POST.get('what_will_be_done')
             stages = request.POST.get('project_stages')
+            collab_ids = [cid for cid in request.POST.getlist('collaborator') if cid]
 
-            # جلب Major إن وُجد
+            try:
+                project_year_value = int(project_year)
+            except (TypeError, ValueError):
+                messages.error(request, 'يرجى اختيار سنة مشروع صحيحة.')
+                return redirect('UploadProject')
+
+            current_year = timezone.now().year
+            if project_year_value < 2000 or project_year_value > current_year + 1:
+                messages.error(request, 'سنة المشروع غير منطقية. اختر سنة صحيحة من القائمة.')
+                return redirect('UploadProject')
+
+            if project_type == 'حلقة بحث' and collab_ids:
+                messages.error(request, 'في حلقة البحث يجب أن يكون الطلب لطالب واحد فقط دون إضافة زملاء.')
+                return redirect('UploadProject')
+
+            if project_type != 'حلقة بحث' and len(collab_ids) > 2:
+                messages.error(request, 'يمكن إضافة طالبين فقط مع الطالب الأساسي، ليصبح العدد الإجمالي 3 طلاب كحد أقصى.')
+                return redirect('UploadProject')
+
             major = None
             try:
                 if major_id:
@@ -460,7 +474,6 @@ def UploadProject(request):
             except Exception:
                 major = None
 
-            # جلب Supervisor إن وُجد
             sup = None
             try:
                 if supervisor_id:
@@ -468,23 +481,40 @@ def UploadProject(request):
             except Exception:
                 sup = None
 
-            # أنشئ المشروع كسجل pending
-            project = Projects.objects.create(
-                ProjectName = title_ar or title_en or "مشروع بدون عنوان",
-                UniversityID = student_obj.university,
-                MajorID = major if major else (Major.objects.first() if Major.objects.exists() else None),
-                Student_id = student_obj,
-                yearOfProject = int(project_year) if project_year else timezone.now().year,
-                Description = idea or "",
-                FullDescription = (what or "") + "\n\nMILESTONES:\n" + (stages or ""),
-                ProjectType = project_type or "",
-                status = 'pending',
-                requested_at = timezone.now(),
-                supervisor = sup
-            )
+            if edit_project:
+                project = edit_project
+                project.ProjectName = title_ar or title_en or 'مشروع بدون عنوان'
+                project.UniversityID = project.Student_id.university if project.Student_id else student_obj.university
+                project.MajorID = major if major else (Major.objects.first() if Major.objects.exists() else None)
+                project.yearOfProject = project_year_value
+                project.Description = idea or ''
+                project.FullDescription = (what or '') + '\n\nMILESTONES:\n' + (stages or '')
+                project.ProjectType = project_type or ''
+                project.status = 'pending'
+                project.requested_at = timezone.now()
+                project.rejection_reason = None
+                project.resubmitted_at = timezone.now()
+                project.supervisor = sup
+                project.edits_approved = False
+                project.save()
+                project.collaborators.clear()
+                success_message = 'تم تعديل بيانات الطلب وإعادة إرساله بنجاح.'
+            else:
+                project = Projects.objects.create(
+                    ProjectName=title_ar or title_en or 'مشروع بدون عنوان',
+                    UniversityID=student_obj.university,
+                    MajorID=major if major else (Major.objects.first() if Major.objects.exists() else None),
+                    Student_id=student_obj,
+                    yearOfProject=project_year_value,
+                    Description=idea or '',
+                    FullDescription=(what or '') + '\n\nMILESTONES:\n' + (stages or ''),
+                    ProjectType=project_type or '',
+                    status='pending',
+                    requested_at=timezone.now(),
+                    supervisor=sup
+                )
+                success_message = 'تم إرسال الطلب بنجاح.'
 
-            # اضف collaborators من hidden inputs (name="collaborator")
-            collab_ids = request.POST.getlist('collaborator')
             for cid in collab_ids:
                 try:
                     s = Student.objects.get(id=int(cid))
@@ -492,14 +522,9 @@ def UploadProject(request):
                 except Exception:
                     pass
 
-            project.save()
-
-            # بعد ارسال الطلب - نوجّه الطالب لمشاريعه
+            messages.success(request, success_message)
             return redirect('MyProject')
 
-        # ---------------------------
-        # 2) رفع ملفات المشروع (الكود القديم) -> name="uploadTheProject"
-        # ---------------------------
         elif request.POST.get('uploadTheProject'):
             ProjectTitle = request.POST.get('ProjectTitle')
             ProjectType = request.POST.get('ProjectType')
@@ -567,15 +592,53 @@ def UploadProject(request):
 
             return redirect('MyProject')
 
-    # GET: عرض الفورم
-    supervisors = Supervisor.objects.all()
-    all_students = Student.objects.exclude(email=student_obj.email)
+    supervisors = Supervisor.objects.filter(is_active=True, approval_status='approved')
+    all_students = Student.objects.filter(is_active=True).exclude(email=student_obj.email)
     majors = Major.objects.all()
+    years = [year for year in range(datetime.now().year + 1, datetime.now().year - 6, -1)]
+    selected_collaborator_ids = []
+    request_data = {
+        'department': '',
+        'projectType': '',
+        'projectYear': '',
+        'title_ar': '',
+        'title_en': '',
+        'supervisor': '',
+        'idea_summary': '',
+        'what_will_be_done': '',
+        'project_stages': '',
+    }
+
+    if edit_project:
+        selected_collaborator_ids = list(edit_project.collaborators.values_list('id', flat=True))
+        what_will_be_done = edit_project.FullDescription or ''
+        project_stages = ''
+        if 'MILESTONES:\n' in what_will_be_done:
+            what_will_be_done, project_stages = what_will_be_done.split('MILESTONES:\n', 1)
+        request_data = {
+            'department': str(edit_project.MajorID_id or ''),
+            'projectType': edit_project.ProjectType or '',
+            'projectYear': str(edit_project.yearOfProject or ''),
+            'title_ar': edit_project.ProjectName or '',
+            'title_en': edit_project.ProjectName or '',
+            'supervisor': str(edit_project.supervisor_id or ''),
+            'idea_summary': edit_project.Description or '',
+            'what_will_be_done': what_will_be_done.strip(),
+            'project_stages': project_stages.strip(),
+        }
+
     return render(request, 'pages/Upload -project.html', {
         'user': student_obj.fullname,
         'supervisors': supervisors,
         'all_students': all_students,
-        'majors': majors
+        'majors': majors,
+        'years': years,
+        'fullname': request.session.get('fullname'),
+        'email': request.session.get('email'),
+        'userType': request.session.get('userType'),
+        'edit_project': edit_project,
+        'request_data': request_data,
+        'selected_collaborator_ids': selected_collaborator_ids,
     })
 
 
@@ -638,13 +701,19 @@ def supervisor_decide(request, project_id):
                 project.edits_approved = False
                 project.is_completed = False
                 project.save(update_fields=['status', 'edits_approved', 'is_completed'])
-                request.session.flush()
-                return redirect('login')
+                messages.success(request, 'تم قبول الطلب ونقله إلى المشاريع الإشرافية.')
+                return redirect('supervisor_projects')
             elif action == 'reject':
+                rejection_reason = (request.POST.get('rejection_reason') or '').strip()
+                if not rejection_reason:
+                    messages.error(request, 'يجب كتابة سبب الرفض قبل إرسال القرار.')
+                    return redirect('projectDetails', id=project.id)
                 project.status = 'rejected'
                 project.edits_approved = False
                 project.is_completed = False
-                project.save(update_fields=['status', 'edits_approved', 'is_completed'])
+                project.rejection_reason = rejection_reason
+                project.save(update_fields=['status', 'edits_approved', 'is_completed', 'rejection_reason'])
+                messages.warning(request, 'تم رفض الطلب مع حفظ سبب الرفض للطلاب.')
         return redirect('supervisor_requests')
     return redirect('/login/')
 
@@ -748,6 +817,8 @@ def MyProject(request, id=None):
 
     for project in projects:
         project.participant_students = _project_students(project)
+        project.can_leave = bool(project.Student_id_id != student.id and project.collaborators.filter(id=student.id).exists() and not project.is_completed)
+        project.can_resubmit = bool(_is_project_participant(project, student) and project.status == 'rejected' and not project.is_completed)
 
     data = {
         'projects': projects,
@@ -761,6 +832,30 @@ def MyProject(request, id=None):
         'userType': request.session.get('userType'),
     }
     return render(request, 'pages/myproject.html', data)
+
+@csrf_protect
+def leave_project(request, project_id):
+    if request.session.get('userType') != 'student' or not request.session.get('email'):
+        return redirect('login')
+
+    student = Student.objects.get(email=request.session['email'])
+    project = get_object_or_404(Projects, id=project_id)
+
+    if project.Student_id_id == student.id:
+        messages.error(request, 'الطالب الأساسي الذي أرسل الطلب لا يمكنه الانسحاب من المشروع.')
+        return redirect('MyProject')
+
+    if project.is_completed:
+        messages.error(request, 'لا يمكن الانسحاب بعد اكتمال المشروع.')
+        return redirect('MyProject')
+
+    if not project.collaborators.filter(id=student.id).exists():
+        messages.error(request, 'الانسحاب متاح فقط للطلاب المشاركين المدعوين في هذا المشروع.')
+        return redirect('MyProject')
+
+    project.collaborators.remove(student)
+    messages.success(request, 'تم إلغاء مشاركتك في هذا المشروع.')
+    return redirect('MyProject')
 
 @csrf_protect
 def loginForAdmin(request):
@@ -782,104 +877,91 @@ def loginForAdmin(request):
 
 @csrf_protect
 def AdminDashboard(request, emailDEl=None):
-    if 'email' in request.session:
-        if request.session['email'] is not None:
-            if request.session['userType'] == "admin":
-                data = {}
-                one_day_ago = timezone.now() - timedelta(days=1)
-                twohoursago = timezone.now() - timedelta(hours=2)
-                oneWeekAgo = timezone.now() - timedelta(days=7)
-                
-                ############## users #############
-                countOfUsers = Student.objects.all().count() + Supervisor.objects.all().count() + AdminUser.objects.all().count()
-                data['countOfUsers'] = countOfUsers
-                countOfStudents = Student.objects.all().count() + Supervisor.objects.all().count()
-                data['countOfStudents'] = countOfStudents
-                countOfSuperVisors = Supervisor.objects.all().count()
-                data['countOfSupervisor'] = countOfSuperVisors 
-                countOfAdmins = AdminUser.objects.all().count()
-                data['countOfAdmins'] = countOfAdmins    
-                
-                ############# projects ############           
-                countOfProjects = Projects.objects.all().count()
-                data['countOfProjects'] = countOfProjects
-                countOfNewProjects = Projects.objects.filter(UploadDate__lt=one_day_ago).count()
-                data['countOfNewProjects'] = countOfNewProjects
-                countOfRatedProjects = Projects.objects.filter(rates__gt=0).count()
-                data['countOfRatedProjects'] = countOfRatedProjects
-                countOfProjectsStillRating = countOfProjects - countOfRatedProjects
-                data['countOfProjectsStillRating'] = countOfProjectsStillRating
-                
-                ############# universities ########
-                countOfUniversities = University.objects.all().count()
-                data['countOfUniversities'] = countOfUniversities
-                universities_with_projects_count = University.objects.filter(projects__isnull=False).distinct().count()
-                data['universities_with_projects_count'] = universities_with_projects_count
-                
-                ############ ratings ##############
-                countOfRatings = Ratings.objects.all().count()
-                data['countOfRatings'] = countOfRatings
-                averageOfRating = Projects.objects.filter(rates__gt=0).aggregate(total=Sum('rates'))['total'] or 0
-                data['averageOfRating'] = averageOfRating / countOfRatedProjects if averageOfRating > 0 else 0
-                
-                StudentsBeforTwoHours = Student.objects.filter(created_at__gt=twohoursago)
-                SupervisorBeforTwoHours = Supervisor.objects.filter(created_at__gt=twohoursago)
-                ProjectsBeforTwoHours = Projects.objects.filter(UploadDate__gt=twohoursago)
-                RatingsBeforTwoHours = Ratings.objects.filter(created_at__gt=twohoursago)
-                commentsBeforTwoHours = Comments.objects.filter(created_at__gt=twohoursago)
-                
-                for s in StudentsBeforTwoHours:
-                    s.type = 'Student'
-                for s in SupervisorBeforTwoHours:
-                    s.type = "SuperVisor"
-                for p in ProjectsBeforTwoHours:
-                    p.type = 'Project'
-                    p.created_at = p.UploadDate  # توحيد اسم حقل التاريخ
-                for r in RatingsBeforTwoHours:
-                    r.type = 'Rating'
-                for c in commentsBeforTwoHours:
-                    c.type = 'Comment'
-                
-                all_records = list(chain(StudentsBeforTwoHours, SupervisorBeforTwoHours, ProjectsBeforTwoHours, RatingsBeforTwoHours, commentsBeforTwoHours))
-                sorted_records = sorted(all_records, key=attrgetter('created_at'), reverse=True)
-
-                students = Student.objects.filter(created_at__gt=one_day_ago)
-                supervisor = Supervisor.objects.filter(created_at__gt=one_day_ago)
-                
-                for s in students:
-                    s.type = 'student'
-                for s in supervisor:
-                    s.type = 'supervisor'                
-                
-                allUsers = list(chain(students, supervisor))
-                
-                ########### return ################
-                if request.method == 'POST':
-                    fullname = request.POST.get('fullname')
-                    email = request.POST.get('email')
-                    password = request.POST.get('password')
-                    rpassword = request.POST.get('rpassword')
-                    
-                    if fullname is not None and email is not None and password is not None and rpassword is not None:
-                        if password == rpassword:
-                            if not AdminUser.objects.filter(email=email).exists():
-                                AdminUser(fullname=fullname, password=password, email=email).save()
-                
-                if emailDEl is not None:
-                    if Student.objects.filter(email=emailDEl).exists():
-                        Student.objects.get(email=emailDEl).delete()
-                    elif Supervisor.objects.filter(email=emailDEl).exists():
-                        Supervisor.objects.get(email=emailDEl).delete()
-                    return redirect('/adminDashboard/')
-                
-                return render(request, 'pages/Admin Dashboard.html', {'data': data, 'records': sorted_records, 'userRecords': allUsers})
-            else:
-                return redirect('/error/')
-        else: 
-            return redirect('/error/')
-    else:
+    if request.session.get('userType') != 'admin' or not request.session.get('email'):
         return redirect('/login/')
 
+    role_filter = (request.GET.get('role') or 'all').strip()
+    search_query = (request.GET.get('q') or '').strip()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        user_id = request.POST.get('user_id')
+
+        if action == 'approve_supervisor' and user_id:
+            supervisor = get_object_or_404(Supervisor, id=user_id)
+            supervisor.approval_status = 'approved'
+            supervisor.is_active = True
+            supervisor.save(update_fields=['approval_status', 'is_active'])
+            messages.success(request, 'تمت الموافقة على حساب المشرف بنجاح.')
+            return redirect('AdminDashboard')
+
+        if action == 'reject_supervisor' and user_id:
+            supervisor = get_object_or_404(Supervisor, id=user_id)
+            supervisor.approval_status = 'rejected'
+            supervisor.save(update_fields=['approval_status'])
+            messages.success(request, 'تم رفض طلب المشرف.')
+            return redirect('AdminDashboard')
+
+        if action == 'toggle_student' and user_id:
+            student = get_object_or_404(Student, id=user_id)
+            student.is_active = not student.is_active
+            student.save(update_fields=['is_active'])
+            messages.success(request, 'تم تحديث حالة حساب الطالب.')
+            return redirect(f"/adminDashboard/?role={role_filter}&q={search_query}")
+
+        if action == 'toggle_supervisor' and user_id:
+            supervisor = get_object_or_404(Supervisor, id=user_id)
+            supervisor.is_active = not supervisor.is_active
+            supervisor.save(update_fields=['is_active'])
+            messages.success(request, 'تم تحديث حالة حساب المشرف.')
+            return redirect(f"/adminDashboard/?role={role_filter}&q={search_query}")
+
+    students_qs = Student.objects.select_related('university', 'department').all().order_by('-created_at')
+    supervisors_qs = Supervisor.objects.select_related('university', 'department').all().order_by('-created_at')
+    pending_supervisor_requests = supervisors_qs.filter(approval_status='pending')
+
+    if search_query:
+        students_qs = students_qs.filter(Q(fullname__icontains=search_query) | Q(email__icontains=search_query))
+        supervisors_qs = supervisors_qs.filter(Q(fullname__icontains=search_query) | Q(email__icontains=search_query))
+
+    users = []
+    if role_filter in ('all', 'student'):
+        for student in students_qs:
+            student.role_label = 'طالب'
+            student.role_key = 'student'
+            users.append(student)
+    if role_filter in ('all', 'supervisor'):
+        for supervisor in supervisors_qs:
+            supervisor.role_label = 'مشرف'
+            supervisor.role_key = 'supervisor'
+            users.append(supervisor)
+
+    users = sorted(users, key=lambda item: item.created_at, reverse=True)
+
+    data = {
+        'countOfUsers': Student.objects.count() + Supervisor.objects.count() + AdminUser.objects.count(),
+        'countOfStudents': Student.objects.count(),
+        'countOfSupervisor': Supervisor.objects.count(),
+        'countOfAdmins': AdminUser.objects.count(),
+        'countOfProjects': Projects.objects.count(),
+        'countOfRatings': Ratings.objects.count(),
+        'countOfUniversities': University.objects.count(),
+        'pending_supervisors_count': Supervisor.objects.filter(approval_status='pending').count(),
+        'disabled_students_count': Student.objects.filter(is_active=False).count(),
+        'disabled_supervisors_count': Supervisor.objects.filter(is_active=False).count(),
+    }
+
+    context = {
+        'data': data,
+        'users': users,
+        'pending_supervisor_requests': pending_supervisor_requests,
+        'role_filter': role_filter,
+        'search_query': search_query,
+        'fullname': request.session.get('fullname'),
+        'email': request.session.get('email'),
+        'userType': request.session.get('userType'),
+    }
+    return render(request, 'pages/Admin Dashboard.html', context)
 @csrf_protect
 def studentProfile(request):
     if request.session.get('userType') != 'student' or not request.session.get('email'):
@@ -919,6 +1001,8 @@ def studentProfile(request):
 
     for project in projects:
         project.participant_students = _project_students(project)
+        project.can_leave = bool(project.Student_id_id != student.id and project.collaborators.filter(id=student.id).exists() and not project.is_completed)
+        project.can_resubmit = bool(_is_project_participant(project, student) and project.status == 'rejected' and not project.is_completed)
         project.rating_summary = _project_rating_summary(project)
         project.visible_degree = project.degree if _can_view_grade(project, request) else None
 
@@ -1170,8 +1254,8 @@ def submit_request(request):
         return redirect('MyProject')   # غيرها لو تحب صفحة تأكيد
 
     # GET: عرض الفورم (اذا نفس التمبلت)
-    supervisors = Supervisor.objects.all()
-    all_students = Student.objects.exclude(email=student.email)
+    supervisors = Supervisor.objects.filter(is_active=True, approval_status='approved')
+    all_students = Student.objects.filter(is_active=True).exclude(email=student.email)
     majors = Major.objects.all()
     return render(request, 'pages/submit_request.html', {
         'supervisors': supervisors,
@@ -1256,6 +1340,11 @@ def complete_project(request, project_id):
     can_upload_final_data = bool(user_type == 'student' and _is_project_participant(project, student_user) and project.edits_approved and not project.is_completed)
     can_send_updates = not project.is_completed
     is_read_only_participant = bool(user_type == 'student' and project.is_completed)
+    has_final_submission = bool(
+        project.final_word_file or project.final_zip_file or project.pdf_file or
+        ProjectMedia.objects.filter(ProjectID=project).exists() or
+        ProjectPictures.objects.filter(ProjectID=project).exists()
+    )
 
     if request.method == 'POST':
         if request.POST.get('approve_edits') is not None:
@@ -1272,10 +1361,10 @@ def complete_project(request, project_id):
             return redirect('complete_project', project_id=project.id)
 
         if request.POST.get('send_update') is not None:
-            text = request.POST.get('update_message_text', '').strip()
+            text_message = request.POST.get('update_message_text', '').strip()
             file = request.FILES.get('update_file')
 
-            if not text and not file:
+            if not text_message and not file:
                 messages.warning(request, 'Cannot send an empty message.')
                 return redirect('complete_project', project_id=project.id)
 
@@ -1283,7 +1372,7 @@ def complete_project(request, project_id):
                 messages.error(request, 'Message attachments must be Word files only (.doc or .docx).')
                 return redirect('complete_project', project_id=project.id)
 
-            msg = ProjectConversationMessage(project=project, text=text)
+            msg = ProjectConversationMessage(project=project, text=text_message)
             if user_type == 'student' and student_user:
                 msg.sender_student = student_user
             elif user_type == 'supervisor' and supervisor_user:
@@ -1334,6 +1423,10 @@ def complete_project(request, project_id):
             return redirect('complete_project', project_id=project.id)
 
         if request.POST.get('finish_project') is not None and user_type == 'supervisor' and supervisor_user:
+            if not has_final_submission:
+                messages.error(request, 'لا يمكن إنهاء المشروع قبل أن يرفع الطلاب البيانات النهائية للمشروع.')
+                return redirect('complete_project', project_id=project.id)
+
             project.is_published = True
             project.status = 'accepted'
             project.edits_approved = True
@@ -1364,12 +1457,9 @@ def complete_project(request, project_id):
         'final_word_file': project.final_word_file,
         'final_zip_file': project.final_zip_file,
         'pdf': project.pdf_file,
+        'has_final_submission': has_final_submission,
     }
     return render(request, 'pages/complete_project.html', context)
-
-
-
-
 
 
 

@@ -1,334 +1,238 @@
-{% load static %}
-{% include "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}لوحة المسؤول العام{% endblock %}
+{% block extra_head %}
+<style>
+    .admin-shell { display: grid; gap: 1.5rem; }
+    .admin-grid { display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 1.5rem; align-items: start; }
+    .admin-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.5rem;
+        box-shadow: 0 18px 40px rgba(17,74,125,0.08);
+    }
+    .admin-card-body { padding: 1.4rem; }
+    .metric-card {
+        background: linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+        border: 1px solid #dbe6f2;
+        border-radius: 1.25rem;
+        padding: 1.2rem;
+        height: 100%;
+    }
+    .metric-number { font-size: 2rem; font-weight: 800; color: #114a7d; }
+    .request-item, .user-row {
+        border: 1px solid #e3edf7;
+        border-radius: 1.2rem;
+        background: #fbfdff;
+    }
+    .request-item { padding: 1rem; }
+    .user-table thead th { background: #f3f8fd; border: 0; }
+    .user-table td, .user-table th { vertical-align: middle; }
+    .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 1rem;
+        border-radius: 999px;
+        border: 1px solid #d3e2f0;
+        color: #4a647d;
+        font-weight: 700;
+        text-decoration: none;
+        background: #fff;
+    }
+    .filter-pill.active {
+        background: linear-gradient(135deg,#0f6cbd,#2f88d0);
+        color: #fff;
+        border-color: transparent;
+    }
+    .request-proof {
+        border: 1px dashed #c4d7ea;
+        border-radius: 1rem;
+        padding: 0.9rem;
+        background: #f7fbff;
+    }
+    @media (max-width: 991px) {
+        .admin-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 {% block content %}
-     <link rel="stylesheet" href="{%static 'css/admin.css'%}">
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <i class="bi bi-mortarboard me-2" style="font-size: 1.5rem;"></i>
-                <span>منصة مشاريع التخرج</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{%url 'index' %}">الرئيسية</a>
-                    </li>
-                  
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-light text-primary ms-2" href="{%url 'logout'%}">خروج</a>
-                    </li>
-                </ul>
+<div class="container py-4">
+    <div class="admin-shell">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h1 class="section-title mb-2">لوحة المسؤول العام</h1>
+                <p class="section-subtitle mb-0">إدارة حسابات الطلاب والمشرفين، مراجعة طلبات المشرفين الجديدة، وتعطيل أو تفعيل الحسابات من مكان واحد.</p>
+            </div>
+            <div class="page-actions">
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary">الرئيسية</a>
+                <a href="{% url 'logout' %}" class="btn btn-primary" data-confirm-message="هل أنت متأكد من تسجيل الخروج من حساب المسؤول العام؟">تسجيل الخروج</a>
             </div>
         </div>
-    </nav>
 
-    <!-- Main Content -->
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar p-4">
-                <div class="position-sticky">
-                    <h5 class="mb-3">القائمة</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link active" href="#">
-                                <i class="bi bi-person-lines-fill me-2"></i>
-                                لوحة التحكم
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-people me-2"></i>
-                                إدارة المستخدمين
-                            </a>
-                        </li>
-                      
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-bar-chart me-2"></i>
-                                الإحصائيات
-                            </a>
-                        </li>
-                     
-                        </li>
-                    </ul>
-                    
-                    <hr class="my-4">
-                    
-                    <h6 class="text-muted">الإحصائيات السريعة</h6>
-                    <div class="mt-3">
-                        <p class="mb-1">المستخدمين: <strong>{{data.countOfUsers}}</strong></p>
-                        <p class="mb-1">المشاريع: <strong>{{data.countOfProjects}}</strong></p>
-                        <p class="mb-0">التقييمات: <strong>{{data.countOfRatings}}</strong></p>
-                    </div>
-                </div>
-            </nav>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3"><div class="metric-card"><div class="text-muted">إجمالي المستخدمين</div><div class="metric-number">{{ data.countOfUsers }}</div><small class="text-muted">طلاب + مشرفون + مسؤولون</small></div></div>
+            <div class="col-md-6 col-xl-3"><div class="metric-card"><div class="text-muted">طلبات المشرفين المعلقة</div><div class="metric-number">{{ data.pending_supervisors_count }}</div><small class="text-muted">بحاجة إلى موافقة أو رفض</small></div></div>
+            <div class="col-md-6 col-xl-3"><div class="metric-card"><div class="text-muted">الحسابات المعطلة</div><div class="metric-number">{{ data.disabled_students_count|add:data.disabled_supervisors_count }}</div><small class="text-muted">طلاب ومشرفون</small></div></div>
+            <div class="col-md-6 col-xl-3"><div class="metric-card"><div class="text-muted">المشاريع والتقييمات</div><div class="metric-number">{{ data.countOfProjects }}</div><small class="text-muted">{{ data.countOfRatings }} تقييم - {{ data.countOfUniversities }} جامعة</small></div></div>
+        </div>
 
-            <!-- Main Content Area -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>لوحة التحكم</h2>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">إضافة مستخدم</button>
-                </div>
-                
-                <!-- Stats Cards -->
-                <div class="row g-4 mb-4">
-                    <!-- Users Card -->
-                    <div class="col-md-6 col-xl-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon bg-primary me-3">
-                                        <i class="bi bi-people-fill"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="card-title mb-1">المستخدمين</h5>
-                                        <h3 class="mb-0">{{data.countOfUsers}}</h3>
-                                    </div>
-                                </div>
-                                <div class="mt-3 pt-2 border-top">
-                                    <div class="d-flex justify-content-between">
-                                        <small class="text-muted">الطلاب: {{data.countOfStudents}}</small>
-                                        <small class="text-muted">المشرفين: {{data.countOfSupervisor}}</small>
-                                        <small class="text-muted">المسؤولين: {{data.countOfAdmins}}</small>
-                                    </div>
-                                </div>
-                            </div>
+        <div class="admin-grid">
+            <div class="admin-card">
+                <div class="admin-card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h3 class="h5 mb-1">طلبات اعتماد المشرفين</h3>
+                            <p class="text-muted mb-0">هذه الطلبات لا يمكنها استخدام النظام قبل موافقتك.</p>
                         </div>
+                        <span class="badge text-bg-warning">{{ pending_supervisor_requests|length }} طلب</span>
                     </div>
-                    
-                    <!-- Projects Card -->
-                    <div class="col-md-6 col-xl-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon bg-success me-3">
-                                        <i class="bi bi-journal-text"></i>
-                                    </div>
+                    <div class="d-grid gap-3">
+                        {% for supervisor in pending_supervisor_requests %}
+                            <div class="request-item">
+                                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
                                     <div>
-                                        <h5 class="card-title mb-1">المشاريع</h5>
-                                        <h3 class="mb-0">{{data.countOfProjects}}</h3>
+                                        <strong class="d-block">{{ supervisor.fullname }}</strong>
+                                        <span class="text-muted small">{{ supervisor.email }}</span>
                                     </div>
+                                    <span class="badge text-bg-warning">بانتظار المراجعة</span>
                                 </div>
-                                <div class="mt-3 pt-2 border-top">
-                                    <div class="d-flex justify-content-between">
-                                        <small class="text-muted">جديدة: {{data.countOfNewProjects}}</small>
-                                        <small class="text-muted">قيد التقييم: {{data.countOfProjectsStillRating}}</small>
-                                        <small class="text-muted">مُقيّمة: {{data.countOfRatedProjects}}</small>
-                                    </div>
+                                <div class="row g-2 mb-3 small text-muted">
+                                    <div class="col-12">الجامعة: {{ supervisor.university.univ_name|default:'غير محددة' }}</div>
+                                    <div class="col-12">التخصص: {{ supervisor.department.major_name|default:'غير محدد' }}</div>
+                                    <div class="col-12">تاريخ الطلب: {{ supervisor.created_at|date:"Y-m-d H:i" }}</div>
+                                </div>
+                                <div class="request-proof mb-3">
+                                    <div class="fw-bold mb-2">إثبات البطاقة الجامعية</div>
+                                    {% if supervisor.university_id_card %}
+                                        <a href="{{ supervisor.university_id_card.url }}" target="_blank" class="btn btn-outline-primary btn-sm">عرض البطاقة المرفوعة</a>
+                                    {% else %}
+                                        <div class="text-muted small">لم يتم رفع بطاقة جامعية.</div>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form method="post" data-confirm-message="هل تريد الموافقة على هذا المشرف؟">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="approve_supervisor">
+                                        <input type="hidden" name="user_id" value="{{ supervisor.id }}">
+                                        <button type="submit" class="btn btn-success btn-sm">موافقة</button>
+                                    </form>
+                                    <form method="post" data-confirm-message="هل تريد رفض طلب هذا المشرف؟">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="reject_supervisor">
+                                        <input type="hidden" name="user_id" value="{{ supervisor.id }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">رفض</button>
+                                    </form>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Evaluations Card -->
-                    <div class="col-md-6 col-xl-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon bg-warning me-3 text-dark">
-                                        <i class="bi bi-star-fill"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="card-title mb-1">التقييمات</h5>
-                                        <h3 class="mb-0">{{data.countOfRatings}}</h3>
-                                    </div>
-                                </div>
-                                <div class="mt-3 pt-2 border-top">
-                                    <div class="d-flex justify-content-between">
-                                        <small class="text-muted">متوسط التقييم: {{data.averageOfRating}}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Universities Card -->
-                    <div class="col-md-6 col-xl-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon bg-info me-3 text-white">
-                                        <i class="bi bi-building"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="card-title mb-1">الجامعات</h5>
-                                        <h3 class="mb-0">{{data.countOfUniversities}}</h3>
-                                    </div>
-                                </div>
-                                <div class="mt-3 pt-2 border-top">
-                                    <div class="d-flex justify-content-between">
-                                        <small class="text-muted">التي لديها مشاريع: {{data.universities_with_projects_count}}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {% empty %}
+                            <div class="alert alert-info mb-0">لا توجد طلبات مشرفين معلقة حالياً.</div>
+                        {% endfor %}
                     </div>
                 </div>
-                
-                <!-- Recent Activity -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">النشاط الأخير</h5>
-                        <button class="btn btn-sm btn-outline-secondary">عرض الكل</button>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            {% for notf in records %}
-                                {% if notf.type == 'Student' %}
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="bi bi-person-plus text-success" style="font-size: 1.5rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <strong>{{notf.fullname}}</strong> قام بالتسجيل كطالب
-                                            <small class="d-block text-muted mt-1">{{notf.created_at}}</small>
-                                        </div>
-                                    </div>
-                                {% elif notf.type == 'SuperVisor' %}
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="bi bi-person-plus text-success" style="font-size: 1.5rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <strong>{{notf.fullname}}</strong> قام بالتسجيل كمشرف
-                                            <small class="d-block text-muted mt-1">{{notf.created_at}}</small>
-                                        </div>
-                                    </div>
-                                {% elif notf.type == 'Project' %}
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="bi bi-upload text-primary" style="font-size: 1.5rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <strong>{{notf.ProjectName}}</strong> تم رفع مشروع جديد
-                                            <small class="d-block text-muted mt-1">{{notf.UploadDate}}</small>
-                                        </div>
-                                    </div>
-                                {% elif notf.type == 'Rating' %}
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="bi bi-star-fill text-warning" style="font-size: 1.5rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <strong>{{notf.SupervisorID.fullname}}</strong> قام بتقييم مشروع "{{notf.ProjectID.ProjectName}}"
-                                            <small class="d-block text-muted mt-1">{{notf.created_at}}</small>
-                                        </div>
-                                    </div>
-                                {% else %}
-                                <br>
-                                {% endif %}
-                            {% endfor %}
+            </div>
+
+            <div class="admin-card">
+                <div class="admin-card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                        <div>
+                            <h3 class="h5 mb-1">إدارة المستخدمين</h3>
+                            <p class="text-muted mb-0">ابحث في الطلاب والمشرفين وقم بتصفية النتائج ثم فعّل أو عطّل الحسابات.</p>
                         </div>
+                        <form method="get" class="d-flex gap-2 flex-wrap">
+                            <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="ابحث بالاسم أو البريد" style="min-width: 220px;">
+                            <input type="hidden" name="role" value="{{ role_filter }}">
+                            <button class="btn btn-primary">بحث</button>
+                        </form>
                     </div>
-                </div>
-                
-                <!-- Users Table -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">المستخدمين الجدد</h5>
-                        <button class="btn btn-sm btn-outline-secondary">تصدير البيانات</button>
+
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <a href="{% url 'AdminDashboard' %}?role=all&q={{ search_query }}" class="filter-pill {% if role_filter == 'all' %}active{% endif %}">الكل</a>
+                        <a href="{% url 'AdminDashboard' %}?role=student&q={{ search_query }}" class="filter-pill {% if role_filter == 'student' %}active{% endif %}">الطلاب</a>
+                        <a href="{% url 'AdminDashboard' %}?role=supervisor&q={{ search_query }}" class="filter-pill {% if role_filter == 'supervisor' %}active{% endif %}">المشرفون</a>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
+
+                    <div class="table-responsive">
+                        <table class="table user-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>البريد</th>
+                                    <th>النوع</th>
+                                    <th>الحالة</th>
+                                    <th>التفاصيل</th>
+                                    <th>الإجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
                                     <tr>
-                                        <th scope="col">#</th>
-                                        <th scope="col">الاسم</th>
-                                        <th scope="col">البريد الإلكتروني</th>
-                                        <th scope="col">الدور</th>
-                                        <th scope="col">الجامعة</th>
-                                        <th scope="col">الإجراءات</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for us in userRecords %}
-                                    <tr>
-                                        <th scope="row">{{forloop.counter}}</th>
-                                        <td>{{us.fullname}}</td>
-                                        <td>{{us.email}}</td>
-                                        {% if us.type == 'student' %}
-                                        <td><span class="badge bg-primary">طالب</span></td>
-                                        {% else %}
-                                        <td><span class="badge bg-primary">مشرف</span></td>
-                                        {% endif %}
-                                        <td><span class="badge bg-success">{{us.university.univ_name}}</span></td>
                                         <td>
-                                            <div class="table-actions">
-                                                <a href="{%url 'AdminDashboard' us.email %}"><button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="حذف"><i class="bi bi-trash"></i></button></a>
+                                            <strong class="d-block">{{ user.fullname }}</strong>
+                                            <small class="text-muted">{{ user.created_at|date:"Y-m-d H:i" }}</small>
+                                        </td>
+                                        <td>{{ user.email }}</td>
+                                        <td><span class="badge {% if user.role_key == 'student' %}text-bg-primary{% else %}text-bg-info{% endif %}">{{ user.role_label }}</span></td>
+                                        <td>
+                                            {% if user.role_key == 'supervisor' %}
+                                                {% if user.approval_status == 'pending' %}<span class="badge text-bg-warning">بانتظار الاعتماد</span>
+                                                {% elif user.approval_status == 'rejected' %}<span class="badge text-bg-danger">مرفوض</span>
+                                                {% else %}<span class="badge text-bg-success">معتمد</span>{% endif %}
+                                            {% endif %}
+                                            {% if user.is_active %}<span class="badge text-bg-success">نشط</span>{% else %}<span class="badge text-bg-secondary">معطل</span>{% endif %}
+                                        </td>
+                                        <td class="small text-muted">
+                                            {% if user.role_key == 'student' %}
+                                                {{ user.university.univ_name }} - {{ user.department.major_name }}
+                                            {% else %}
+                                                {{ user.university.univ_name|default:'-' }} - {{ user.department.major_name|default:'-' }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                {% if user.role_key == 'student' %}
+                                                    <form method="post" data-confirm-message="هل تريد {% if user.is_active %}تعطيل{% else %}تفعيل{% endif %} حساب هذا الطالب؟">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="toggle_student">
+                                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                        <button type="submit" class="btn btn-sm {% if user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">{% if user.is_active %}تعطيل{% else %}تفعيل{% endif %}</button>
+                                                    </form>
+                                                {% else %}
+                                                    {% if user.approval_status != 'approved' %}
+                                                        <form method="post" data-confirm-message="هل تريد الموافقة على هذا المشرف الآن؟">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="approve_supervisor">
+                                                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                            <button type="submit" class="btn btn-sm btn-success">اعتماد</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    {% if user.approval_status != 'rejected' %}
+                                                        <form method="post" data-confirm-message="هل تريد رفض طلب هذا المشرف؟">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="reject_supervisor">
+                                                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">رفض</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    <form method="post" data-confirm-message="هل تريد {% if user.is_active %}تعطيل{% else %}تفعيل{% endif %} حساب هذا المشرف؟">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="toggle_supervisor">
+                                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                        <button type="submit" class="btn btn-sm {% if user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">{% if user.is_active %}تعطيل{% else %}تفعيل{% endif %}</button>
+                                                    </form>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                                {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد نتائج مطابقة للفلاتر الحالية.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Add User Modal -->
-    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addUserModalLabel">إضافة مسؤول جديد</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" enctype="multipart/form-data"> 
-                        {% csrf_token %}
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="fullName" class="form-label">الاسم الكامل</label>
-                                <input type="text" class="form-control" id="fullName" name="fullname" placeholder="أحمد محمد علي">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="email" class="form-label">البريد الإلكتروني</label>
-                                <input type="email" class="form-control" id="email" name="email" placeholder="example@university.edu">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="password" class="form-label">كلمة المرور</label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="••••••••">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="confirmPassword" class="form-label">تأكيد كلمة المرور</label>
-                                <input type="password" class="form-control" id="confirmPassword" name="rpassword" placeholder="••••••••">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">حفظ المستخدم</button>
-                </div>
-                    </form>
-                </div>
-                
             </div>
         </div>
     </div>
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">© 2025 منصة مشاريع التخرج - جميع الحقوق محفوظة</p>
-        </div>
-    </footer>
+</div>
+{% endblock %}
 
-    <script>
-        // Initialize tooltips
-        document.addEventListener('DOMContentLoaded', function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
-    </script>
-{% endblock content %}

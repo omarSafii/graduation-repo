@@ -36,6 +36,7 @@ urlpatterns = [
     # ظ…ط´ط§ط±ظٹط¹ظٹ
     path('MyProject/', views.MyProject, name="MyProject"),
     path('MyProject/<int:id>/', views.MyProject, name="MyProject"),
+    path('project/<int:project_id>/leave/', views.leave_project, name='leave_project'),
 
     # ظ„ظˆط­ط© ط§ظ„ط£ط¯ظ…ظ†
     path('adminDashboard/', views.AdminDashboard, name="AdminDashboard"),

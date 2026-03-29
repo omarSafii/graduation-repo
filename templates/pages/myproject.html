@@ -26,16 +26,25 @@
                 <div class="surface-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <h4 class="h5 mb-0">{{ project.ProjectName }}</h4>
-                        <span class="badge {% if project.is_completed %}text-bg-dark{% elif project.status == 'accepted' %}text-bg-primary{% elif project.status == 'pending' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{% if project.is_completed %}مكتمل{% elif project.status == 'accepted' %}قيد المتابعة{% elif project.status == 'pending' %}بانتظار القرار{% else %}{{ project.status }}{% endif %}</span>
+                        <span class="badge {% if project.is_completed %}text-bg-dark{% elif project.status == 'accepted' %}text-bg-primary{% elif project.status == 'pending' %}text-bg-warning{% else %}text-bg-danger{% endif %}">{% if project.is_completed %}مكتمل{% elif project.status == 'accepted' %}قيد المتابعة{% elif project.status == 'pending' %}بانتظار القرار{% elif project.status == 'rejected' %}مرفوض{% else %}{{ project.status }}{% endif %}</span>
                     </div>
                     <div class="text-muted small mb-2">المشاركون: {% for s in project.participant_students %}{{ s.fullname }}{% if not forloop.last %}، {% endif %}{% endfor %}</div>
                     <p class="text-muted">{{ project.Description|truncatechars:120 }}</p>
+                    {% if project.status == 'rejected' and project.rejection_reason %}
+                        <div class="alert alert-danger py-2 small"><strong>سبب الرفض:</strong> {{ project.rejection_reason }}</div>
+                    {% endif %}
                     <div class="d-flex gap-2 flex-wrap mt-3">
                         <a href="{% url 'projectDetails' project.id %}" class="btn btn-outline-secondary btn-sm">التفاصيل</a>
                         {% if project.status == 'accepted' and not project.is_completed %}
                             <a href="{% url 'complete_project' project.id %}" class="btn btn-primary btn-sm">متابعة التقدم</a>
                         {% elif project.is_completed %}
                             <button class="btn btn-outline-secondary btn-sm" disabled>عرض فقط بعد الاكتمال</button>
+                        {% endif %}
+                        {% if project.can_resubmit %}
+                            <a href="{% url 'UploadProject' %}?edit={{ project.id }}" class="btn btn-warning btn-sm">تعديل وإعادة الإرسال</a>
+                        {% endif %}
+                        {% if project.can_leave %}
+                            <a href="{% url 'leave_project' project.id %}" class="btn btn-outline-danger btn-sm" data-confirm-message="هل أنت متأكد من إلغاء مشاركتك في هذا المشروع؟">إلغاء المشاركة</a>
                         {% endif %}
                     </div>
                 </div>

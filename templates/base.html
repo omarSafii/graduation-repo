@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}منصة مشاريع التخرججج{% endblock %}</title>
+    <title>{% block title %}منصة مشاريع التخرج{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,12 +26,17 @@
             font-family: 'Cairo', sans-serif;
             background: radial-gradient(circle at top, #fafdff 0%, var(--page) 45%, #eef3f8 100%);
             color: var(--ink);
+            display: flex;
+            flex-direction: column;
         }
         .btn, .form-control, .form-select, .card, .badge, .dropdown-menu, .modal-content { border-radius: 1rem; }
         .btn-primary { background: linear-gradient(135deg, var(--brand) 0%, #2b84cc 100%); border: none; }
         .btn-primary:hover, .btn-primary:focus { background: linear-gradient(135deg, #0d5ea7 0%, #1d71b8 100%); }
         .btn-outline-primary { border-color: var(--brand); color: var(--brand); }
         .btn-outline-primary:hover { background: var(--brand); color: #fff; }
+        .navbar .nav-link { border-radius: 999px; padding: 0.65rem 1rem; font-weight: 700; color: var(--ink); transition: 0.2s ease; }
+        .navbar .nav-link:hover { background: var(--brand-soft); color: var(--brand-dark); }
+        .navbar .nav-link.active { background: linear-gradient(135deg, var(--brand) 0%, #2b84cc 100%); color: #fff !important; box-shadow: 0 14px 28px rgba(15,108,189,0.18); }
         .surface-card {
             background: var(--surface);
             border: 1px solid var(--line);
@@ -53,6 +58,18 @@
             font-size: 0.92rem;
         }
         .alert { border-radius: 1rem; }
+        .success-hero {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 1.3rem;
+            background: linear-gradient(135deg,#12a150,#6fd38f);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 16px 30px rgba(18,161,80,0.24);
+        }
         .confirm-hero {
             width: 4rem;
             height: 4rem;
@@ -80,14 +97,28 @@
         {% endfor %}
     {% endif %}
 </div>
-{% block content %}{% endblock %}
+<main class="flex-grow-1">{% block content %}{% endblock %}</main>
 
+<div class="modal fade" id="globalSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <div class="success-hero mx-auto mb-3"><i class="bi bi-check2-circle"></i></div>
+                <h5 class="mb-2">تمت العملية بنجاح</h5>
+                <p class="text-muted mb-0" id="globalSuccessMessage">تم تنفيذ الإجراء بنجاح.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">حسناً</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-body p-4 text-center">
                 <div class="confirm-hero mx-auto mb-3"><i class="bi bi-shield-check"></i></div>
-                <h5 class="mb-2" id="globalConfirmTitle">تأكيد الإجراء</h5>
+                <h5 class="mb-2">تأكيد الإجراء</h5>
                 <p class="text-muted mb-0" id="globalConfirmMessage">هل تريد المتابعة؟</p>
             </div>
             <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
@@ -107,6 +138,7 @@
         const approveButton = document.getElementById('globalConfirmApprove');
         const confirmModal = modalElement ? new bootstrap.Modal(modalElement) : null;
         let pendingAction = null;
+        let lastSubmitter = null;
 
         function openConfirm(message, action) {
             if (!confirmModal) {
@@ -120,16 +152,20 @@
 
         if (approveButton) {
             approveButton.addEventListener('click', function () {
-                if (pendingAction) {
-                    const action = pendingAction;
-                    pendingAction = null;
-                    confirmModal.hide();
-                    action();
-                }
+                if (!pendingAction) return;
+                const action = pendingAction;
+                pendingAction = null;
+                confirmModal.hide();
+                action();
             });
         }
 
         document.addEventListener('click', function (event) {
+            const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
+            if (submitter) {
+                lastSubmitter = submitter;
+            }
+
             const trigger = event.target.closest('[data-confirm-message]');
             if (!trigger) return;
 
@@ -152,7 +188,7 @@
                 if (form) {
                     trigger.dataset.confirmApproved = 'true';
                     if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit(trigger);
+                        form.requestSubmit(trigger.matches('button, input') ? trigger : lastSubmitter);
                     } else {
                         form.submit();
                     }
@@ -167,10 +203,15 @@
                 form.dataset.confirmApproved = 'false';
                 return;
             }
+
             event.preventDefault();
+            const submitter = event.submitter || lastSubmitter;
+
             openConfirm(message, function () {
                 form.dataset.confirmApproved = 'true';
-                if (typeof form.requestSubmit === 'function') {
+                if (typeof form.requestSubmit === 'function' && submitter) {
+                    form.requestSubmit(submitter);
+                } else if (typeof form.requestSubmit === 'function') {
                     form.requestSubmit();
                 } else {
                     form.submit();
@@ -182,3 +223,8 @@
 {% block extra_scripts %}{% endblock %}
 </body>
 </html>
+
+
+
+
+

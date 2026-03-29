@@ -48,6 +48,15 @@
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label">نوع المشروع</label>
+                <select name="project_type" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="تخرج" {% if current_filters.project_type == 'تخرج' %}selected{% endif %}>تخرج</option>
+                    <option value="فصلي" {% if current_filters.project_type == 'فصلي' %}selected{% endif %}>فصلي</option>
+                    <option value="حلقة بحث" {% if current_filters.project_type == 'حلقة بحث' %}selected{% endif %}>حلقة بحث</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">الترتيب</label>
                 <select name="sort" class="form-select">
                     <option value="newest" {% if current_filters.sort == 'newest' %}selected{% endif %}>الأحدث</option>
@@ -55,8 +64,9 @@
                     <option value="rating" {% if current_filters.sort == 'rating' %}selected{% endif %}>الأعلى تقييماً</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100">تطبيق</button>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary">تطبيق</button>
+                <a href="{% url 'BrowseProjects' %}" class="btn btn-outline-secondary">إزالة الفلاتر</a>
             </div>
         </form>
     </div>
@@ -79,6 +89,7 @@
                         </div>
                         <div class="text-muted small mb-2">{% for student in project.participant_students %}{{ student.fullname }}{% if not forloop.last %}، {% endif %}{% endfor %}</div>
                         <p class="text-muted">{{ project.Description|truncatechars:115 }}</p>
+                        <div class="text-muted small mb-3"><i class="bi bi-clock-history ms-1"></i>أُضيف في {{ project.UploadDate|date:"j M Y - H:i" }}</div>
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
                             <div>
                                 {% if project.has_ratings %}

@@ -66,7 +66,7 @@
             <div class="text-start">
                 {% if project.is_completed %}
                     <span class="badge bg-dark fs-6">المشروع مكتمل ومغلق</span>
-                {% elif can_upload_final_data %}
+                {% elif project.edits_approved %}
                     <span class="badge bg-success fs-6">التسليم النهائي مفتوح</span>
                 {% else %}
                     <span class="badge text-bg-primary fs-6">مرحلة المراسلات والتعديلات</span>
@@ -80,13 +80,13 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-4"><div class="step-card active"><h5>1. تبادل الملاحظات</h5><p class="mb-0 text-muted">ترسل الرسائل والمرفقات بصيغة Word فقط، مع إبراز الملف المختار قبل الإرسال.</p></div></div>
-        <div class="col-md-4"><div class="step-card {% if can_upload_final_data %}active{% else %}locked{% endif %}"><h5>2. التسليم النهائي</h5><p class="mb-0 text-muted">يفتح فقط بعد اعتماد المشرف انتهاء التعديلات. قبل ذلك تبقى هذه المنطقة مقفولة.</p></div></div>
+        <div class="col-md-4"><div class="step-card {% if project.edits_approved %}active{% else %}locked{% endif %}"><h5>2. التسليم النهائي</h5><p class="mb-0 text-muted">يفتح فقط بعد اعتماد المشرف انتهاء التعديلات. قبل ذلك تبقى هذه المنطقة مقفولة.</p></div></div>
         <div class="col-md-4"><div class="step-card {% if project.is_completed %}active{% else %}locked{% endif %}"><h5>3. الإنهاء والنشر</h5><p class="mb-0 text-muted">بعد الإنهاء تتوقف الرسائل والرفع نهائياً، ويصبح المشروع للعرض فقط.</p></div></div>
     </div>
 
     {% if project.is_completed %}
         <div class="alert alert-warning">المشروع مكتمل الآن. لا يمكن إرسال رسائل جديدة أو رفع ملفات إضافية، ويمكن للطلاب المشاركين عرض السجل والملفات فقط.</div>
-    {% elif can_upload_final_data %}
+    {% elif project.edits_approved %}
         <div class="alert alert-success">اعتمد المشرف انتهاء التعديلات. أصبح بإمكان الطلاب المشاركين رفع ملفات التسليم النهائي الآن.</div>
     {% else %}
         <div class="alert alert-info">مرحلة التسليم النهائي ما تزال مقفولة حتى يعتمد المشرف انتهاء التعديلات.</div>
@@ -99,10 +99,14 @@
                 <h4 class="h5 mb-1">فتح مرحلة التسليم النهائي</h4>
                 <p class="text-muted mb-0">هذه الخطوة مهمة، لذلك أضفنا تأكيداً قبل فتحها حتى لا يتم فتحها بالخطأ.</p>
             </div>
-            <form method="POST" data-confirm-message="هل أنت متأكد من اعتماد انتهاء التعديلات وفتح التسليم النهائي للطلاب؟">
-                {% csrf_token %}
-                <button type="submit" name="approve_edits" class="btn btn-primary">اعتماد وفتح التسليم النهائي</button>
-            </form>
+            {% if project.edits_approved %}
+                <span class="badge bg-success fs-6">تم فتح المرحلة بالفعل</span>
+            {% else %}
+                <form method="POST">
+                    {% csrf_token %}
+                    <button type="submit" name="approve_edits" class="btn btn-primary" data-confirm-message="هل أنت متأكد من اعتماد انتهاء التعديلات وفتح التسليم النهائي للطلاب؟">اعتماد وفتح التسليم النهائي</button>
+                </form>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -201,12 +205,18 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap mt-4">
-                        <button type="submit" name="save_data" class="btn btn-success" {% if not can_upload_final_data %}disabled{% endif %}>حفظ التسليم النهائي</button>
+                        {% if user_type == 'student' %}
+                            <button type="submit" name="save_data" class="btn btn-success" {% if not can_upload_final_data %}disabled{% endif %}>حفظ التسليم النهائي</button>
+                        {% endif %}
                         {% if user_type == 'supervisor' %}
-                            <button type="submit" name="finish_project" class="btn btn-dark" data-confirm-message="هل أنت متأكد من إنهاء المشروع بالكامل؟ بعد ذلك لن يتمكن أحد من إرسال رسائل أو رفع ملفات جديدة." {% if project.is_completed %}disabled{% endif %}>إنهاء المشروع بالكامل</button>
+                            <button type="submit" name="finish_project" class="btn btn-dark" data-confirm-message="هل أنت متأكد من إنهاء المشروع بالكامل؟ بعد ذلك لن يتمكن أحد من إرسال رسائل أو رفع ملفات جديدة." {% if project.is_completed or not has_final_submission %}disabled{% endif %}>إنهاء المشروع بالكامل</button>
                         {% endif %}
                     </div>
                 </form>
+
+                {% if user_type == 'supervisor' and not has_final_submission and not project.is_completed %}
+                    <div class="alert alert-warning mt-3 mb-0">لا يمكن إنهاء المشروع الآن لأن الطلاب لم يرفعوا البيانات النهائية بعد. سيتفعل زر الإنهاء تلقائياً بعد رفع ملف أو صورة أو فيديو نهائي.</div>
+                {% endif %}
 
                 <hr>
                 <h5 class="mb-3">الملفات الحالية</h5>
