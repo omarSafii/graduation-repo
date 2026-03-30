@@ -97,6 +97,28 @@ def _is_project_participant(project, student):
     return any(member.id == student.id for member in _project_students(project))
 
 
+def _student_projects_queryset(student, exclude_project_id=None):
+    qs = Projects.objects.filter(Q(Student_id=student) | Q(collaborators=student)).distinct()
+    if exclude_project_id:
+        qs = qs.exclude(id=exclude_project_id)
+    return qs
+
+
+def _student_project_types(student, exclude_project_id=None):
+    return set(
+        _student_projects_queryset(student, exclude_project_id)
+        .exclude(ProjectType__isnull=True)
+        .exclude(ProjectType='')
+        .values_list('ProjectType', flat=True)
+    )
+
+
+def _student_has_project_type(student, project_type, exclude_project_id=None):
+    if not project_type:
+        return False
+    return _student_projects_queryset(student, exclude_project_id).filter(ProjectType=project_type).exists()
+
+
 def _can_view_grade(project, request):
     if project.degree is None:
         return False
@@ -481,6 +503,32 @@ def UploadProject(request):
             except Exception:
                 sup = None
 
+            redirect_target = f"{request.path}?edit={edit_project.id}" if edit_project else 'UploadProject'
+            existing_project_id = edit_project.id if edit_project else None
+
+            if _student_has_project_type(student_obj, project_type, existing_project_id):
+                messages.error(request, f'لا يمكنك إرسال أكثر من طلب من نوع {project_type}. لديك بالفعل طلب أو مشروع من هذا النوع.')
+                return redirect(redirect_target)
+
+            collaborator_students = []
+            seen_collaborator_ids = set()
+            for cid in collab_ids:
+                try:
+                    collaborator = Student.objects.get(id=int(cid), is_active=True)
+                except (TypeError, ValueError, Student.DoesNotExist):
+                    messages.error(request, 'أحد الطلاب المشاركين غير متاح حالياً.')
+                    return redirect(redirect_target)
+
+                if collaborator.id == student_obj.id or collaborator.id in seen_collaborator_ids:
+                    continue
+
+                if _student_has_project_type(collaborator, project_type, existing_project_id):
+                    messages.error(request, f'لا يمكن إضافة الطالب {collaborator.fullname} لأنه يملك بالفعل طلباً أو مشروعاً من نوع {project_type}.')
+                    return redirect(redirect_target)
+
+                collaborator_students.append(collaborator)
+                seen_collaborator_ids.add(collaborator.id)
+
             if edit_project:
                 project = edit_project
                 project.ProjectName = title_ar or title_en or 'مشروع بدون عنوان'
@@ -515,12 +563,8 @@ def UploadProject(request):
                 )
                 success_message = 'تم إرسال الطلب بنجاح.'
 
-            for cid in collab_ids:
-                try:
-                    s = Student.objects.get(id=int(cid))
-                    project.collaborators.add(s)
-                except Exception:
-                    pass
+            for collaborator in collaborator_students:
+                project.collaborators.add(collaborator)
 
             messages.success(request, success_message)
             return redirect('MyProject')
@@ -593,7 +637,7 @@ def UploadProject(request):
             return redirect('MyProject')
 
     supervisors = Supervisor.objects.filter(is_active=True, approval_status='approved')
-    all_students = Student.objects.filter(is_active=True).exclude(email=student_obj.email)
+    available_students = Student.objects.filter(is_active=True).exclude(email=student_obj.email)
     majors = Major.objects.all()
     years = [year for year in range(datetime.now().year + 1, datetime.now().year - 6, -1)]
     selected_collaborator_ids = []
@@ -627,10 +671,21 @@ def UploadProject(request):
             'project_stages': project_stages.strip(),
         }
 
+    excluded_project_id = edit_project.id if edit_project else None
+    current_student_blocked_types = sorted(_student_project_types(student_obj, excluded_project_id))
+    student_options = [
+        {
+            'student': candidate,
+            'blocked_types': sorted(_student_project_types(candidate, excluded_project_id)),
+        }
+        for candidate in available_students
+    ]
+
     return render(request, 'pages/Upload -project.html', {
         'user': student_obj.fullname,
         'supervisors': supervisors,
-        'all_students': all_students,
+        'student_options': student_options,
+        'current_student_blocked_types': current_student_blocked_types,
         'majors': majors,
         'years': years,
         'fullname': request.session.get('fullname'),

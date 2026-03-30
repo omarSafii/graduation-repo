@@ -25,6 +25,42 @@
         color: #114a7d;
         font-weight: 800;
     }
+    .search-card {
+        background: #f8fbff;
+        border: 1px solid #dbe6f2;
+        border-radius: 1.15rem;
+        padding: 1rem;
+    }
+    .picker-list {
+        display: grid;
+        gap: 0.85rem;
+        max-height: 420px;
+        overflow-y: auto;
+        padding-inline-end: 0.2rem;
+    }
+    .picker-item {
+        border: 1px solid #dbe6f2;
+        border-radius: 1rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+        transition: 0.2s ease;
+    }
+    .picker-item:hover {
+        border-color: #8dbbe4;
+        box-shadow: 0 12px 24px rgba(17,74,125,0.08);
+    }
+    .picker-item.unavailable {
+        background: #f6f7f9;
+        border-style: dashed;
+        opacity: 0.75;
+    }
+    .picker-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+        flex-wrap: wrap;
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -32,7 +68,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
             <h1 class="section-title mb-2">{% if edit_project %}تعديل الطلب وإعادة إرساله{% else %}تقديم طلب مشروع{% endif %}</h1>
-            <p class="section-subtitle mb-0">يمكن للطالب الأساسي إضافة حتى طالبين فقط معه، أما حلقة البحث فتكون لطالب واحد فقط.</p>
+            <p class="section-subtitle mb-0">يمكن للطالب الأساسي إضافة حتى طالبين فقط معه، أما حلقة البحث فتكون لطالب واحد فقط، ولا يمكن لأي طالب تكرار نفس نوع المشروع أكثر من مرة.</p>
         </div>
         <div class="page-actions">
             <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">مشاريعي</a>
@@ -47,6 +83,7 @@
     <form method="POST" action="{% url 'UploadProject' %}" enctype="multipart/form-data" class="submit-card">
         {% csrf_token %}
         {% if edit_project %}<input type="hidden" name="project_id" value="{{ edit_project.id }}">{% endif %}
+        <input type="hidden" id="currentStudentBlockedTypes" value="{{ current_student_blocked_types|join:'|' }}">
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label">التخصص</label>
@@ -63,6 +100,7 @@
                     <option value="فصلي" {% if request_data.projectType == 'فصلي' %}selected{% endif %}>فصلي</option>
                     <option value="حلقة بحث" {% if request_data.projectType == 'حلقة بحث' %}selected{% endif %}>حلقة بحث</option>
                 </select>
+                <div id="projectTypeWarning" class="alert alert-warning mt-2 d-none mb-0"></div>
             </div>
             <div class="col-md-6">
                 <label class="form-label">سنة المشروع</label>
@@ -87,24 +125,29 @@
                 <input type="text" name="title_en" class="form-control" value="{{ request_data.title_en|default:'' }}" required>
             </div>
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <label class="form-label mb-0">إضافة طلاب مشاركين</label>
-                    <small class="text-muted" id="teamHint">يمكنك إضافة طالبين كحد أقصى.</small>
-                </div>
-                <select class="form-select mt-2" id="studentSelect">
-                    <option value="">اختر طالباً لإضافته إلى المجموعة</option>
-                    {% for s in all_students %}<option value="{{ s.id }}">{{ s.fullname }} - {{ s.email }}</option>{% endfor %}
-                </select>
-                <div id="selectedStudents" class="d-flex flex-wrap gap-2 mt-3">
-                    {% for s in all_students %}
-                        {% if s.id in selected_collaborator_ids %}
-                            <div class="student-chip" id="student-{{ s.id }}">
-                                <span>{{ s.fullname }} - {{ s.email }}</span>
-                                <button type="button" class="remove-chip" onclick="removeStudent('{{ s.id }}')">x</button>
-                                <input type="hidden" name="collaborator" value="{{ s.id }}">
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+                <div class="search-card">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <label class="form-label mb-0">إضافة طلاب مشاركين</label>
+                            <div id="studentSelectionNote" class="text-muted small mt-1">اختر نوع المشروع أولاً، ثم افتح القائمة للبحث بين الطلاب المتاحين.</div>
+                        </div>
+                        <small class="text-muted" id="teamHint">يمكنك إضافة طالبين كحد أقصى.</small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <button type="button" id="openStudentPicker" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#studentPickerModal">اختيار الطلاب المشاركين</button>
+                        <span class="badge text-bg-light" id="selectedStudentsCount">0 طلاب مختارون</span>
+                    </div>
+                    <div id="selectedStudents" class="d-flex flex-wrap gap-2 mt-3">
+                        {% for option in student_options %}
+                            {% if option.student.id in selected_collaborator_ids %}
+                                <div class="student-chip" id="student-{{ option.student.id }}" data-student-label="{{ option.student.fullname }} - {{ option.student.email }}">
+                                    <span>{{ option.student.fullname }} - {{ option.student.email }}</span>
+                                    <button type="button" class="remove-chip" onclick="removeStudent('{{ option.student.id }}')">x</button>
+                                    <input type="hidden" name="collaborator" value="{{ option.student.id }}">
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             <div class="col-12">
@@ -121,21 +164,94 @@
             </div>
         </div>
         <div class="d-flex gap-2 flex-wrap mt-4">
-            <button type="submit" name="submitRequest" value="1" class="btn btn-primary">{% if edit_project %}تعديل وإعادة إرسال الطلب{% else %}إرسال الطلب{% endif %}</button>
+            <button type="submit" id="submitRequestButton" name="submitRequest" value="1" class="btn btn-primary">{% if edit_project %}تعديل وإعادة إرسال الطلب{% else %}إرسال الطلب{% endif %}</button>
             <a href="{% url 'MyProject' %}" class="btn btn-outline-secondary">إلغاء</a>
         </div>
     </form>
 </div>
+
+<div class="modal fade" id="studentPickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">اختيار الطلاب المشاركين</h5>
+                    <div class="text-muted small">ابحث داخل القائمة وحدد الطلاب المتاحين لهذا النوع من المشروع.</div>
+                </div>
+                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <input type="text" id="studentSearchInput" class="form-control" placeholder="ابحث باسم الطالب أو بريده الإلكتروني">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <div class="text-muted small" id="studentPickerStatus">حدد نوع المشروع أولاً لرؤية الطلاب المتاحين.</div>
+                    </div>
+                </div>
+                <div class="picker-list" id="studentPickerList">
+                    {% for option in student_options %}
+                        <label class="picker-item" data-student-item data-student-id="{{ option.student.id }}" data-student-label="{{ option.student.fullname }} - {{ option.student.email }}" data-blocked-types="{{ option.blocked_types|join:'|' }}">
+                            <div class="picker-meta">
+                                <div>
+                                    <div class="fw-bold">{{ option.student.fullname }}</div>
+                                    <div class="text-muted small">{{ option.student.email }}</div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge text-bg-light status-badge">متاح</span>
+                                    <input class="form-check-input student-picker-check" type="checkbox" value="{{ option.student.id }}">
+                                </div>
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="applyStudentSelection">اعتماد الاختيار</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 {% block extra_scripts %}
 <script>
-    const select = document.getElementById('studentSelect');
     const container = document.getElementById('selectedStudents');
     const projectTypeSelect = document.getElementById('projectTypeSelect');
     const teamHint = document.getElementById('teamHint');
+    const studentSelectionNote = document.getElementById('studentSelectionNote');
+    const submitRequestButton = document.getElementById('submitRequestButton');
+    const projectTypeWarning = document.getElementById('projectTypeWarning');
+    const studentSearchInput = document.getElementById('studentSearchInput');
+    const selectedStudentsCount = document.getElementById('selectedStudentsCount');
+    const studentPickerStatus = document.getElementById('studentPickerStatus');
+    const pickerItems = Array.from(document.querySelectorAll('[data-student-item]'));
+    const applyStudentSelection = document.getElementById('applyStudentSelection');
+    const currentStudentBlockedTypes = new Set((document.getElementById('currentStudentBlockedTypes')?.value || '').split('|').filter(Boolean));
+    const pickerModalElement = document.getElementById('studentPickerModal');
+    const pickerModal = pickerModalElement ? new bootstrap.Modal(pickerModalElement) : null;
 
     function selectedCount() {
         return container.querySelectorAll('input[name="collaborator"]').length;
+    }
+
+    function selectedIds() {
+        return Array.from(container.querySelectorAll('input[name="collaborator"]')).map(input => input.value);
+    }
+
+    function updateSelectedCount() {
+        const count = selectedCount();
+        selectedStudentsCount.textContent = count + (count === 1 ? ' طالب مختار' : ' طلاب مختارون');
+    }
+
+    function addStudentChip(studentId, label) {
+        if (document.getElementById('student-' + studentId)) return;
+        const chip = document.createElement('div');
+        chip.className = 'student-chip';
+        chip.id = 'student-' + studentId;
+        chip.setAttribute('data-student-label', label);
+        chip.innerHTML = '<span>' + label + '</span><button type="button" class="remove-chip" onclick="removeStudent(\'' + studentId + '\')">x</button><input type="hidden" name="collaborator" value="' + studentId + '">';
+        container.appendChild(chip);
     }
 
     function removeStudent(id) {
@@ -144,17 +260,96 @@
         refreshCollaboratorState();
     }
 
+    function refreshTypeWarning() {
+        const selectedType = projectTypeSelect.value;
+        const ownerBlocked = selectedType && currentStudentBlockedTypes.has(selectedType);
+        if (ownerBlocked) {
+            projectTypeWarning.textContent = 'لديك بالفعل طلب أو مشروع من هذا النوع، لذلك لا يمكنك إرسال طلب جديد بنفس النوع.';
+            projectTypeWarning.classList.remove('d-none');
+        } else {
+            projectTypeWarning.classList.add('d-none');
+            projectTypeWarning.textContent = '';
+        }
+        submitRequestButton.disabled = !!ownerBlocked;
+    }
+
+    function refreshPickerItems() {
+        const selectedType = projectTypeSelect.value;
+        const searchValue = (studentSearchInput.value || '').trim().toLowerCase();
+        const pickedIds = new Set(selectedIds());
+        const isResearch = selectedType === 'حلقة بحث';
+        const maxStudents = isResearch ? 0 : 2;
+        const remainingSlots = Math.max(0, maxStudents - pickedIds.size);
+        let visibleCount = 0;
+
+        pickerItems.forEach(item => {
+            const label = item.dataset.studentLabel || '';
+            const studentId = item.dataset.studentId;
+            const checkbox = item.querySelector('.student-picker-check');
+            const badge = item.querySelector('.status-badge');
+            const blockedTypes = (item.dataset.blockedTypes || '').split('|').filter(Boolean);
+            const blockedForType = !!selectedType && blockedTypes.includes(selectedType);
+            const alreadySelected = pickedIds.has(studentId);
+            const matchesSearch = !searchValue || label.toLowerCase().includes(searchValue);
+            const noMoreSlots = !alreadySelected && remainingSlots === 0;
+            const disabled = isResearch || blockedForType || noMoreSlots;
+
+            item.hidden = !matchesSearch;
+            item.classList.toggle('unavailable', disabled);
+            checkbox.checked = alreadySelected;
+            checkbox.disabled = disabled;
+
+            if (isResearch) {
+                badge.textContent = 'مغلق لهذا النوع';
+                badge.className = 'badge text-bg-secondary status-badge';
+            } else if (blockedForType) {
+                badge.textContent = 'لديه هذا النوع مسبقاً';
+                badge.className = 'badge text-bg-warning status-badge';
+            } else if (alreadySelected) {
+                badge.textContent = 'مختار حالياً';
+                badge.className = 'badge text-bg-success status-badge';
+            } else if (noMoreSlots) {
+                badge.textContent = 'اكتمل العدد';
+                badge.className = 'badge text-bg-secondary status-badge';
+            } else {
+                badge.textContent = 'متاح';
+                badge.className = 'badge text-bg-light status-badge';
+            }
+
+            if (!item.hidden) {
+                visibleCount += 1;
+            }
+        });
+
+        if (!selectedType) {
+            studentPickerStatus.textContent = 'اختر نوع المشروع أولاً لتصفية الطلاب المتاحين.';
+            studentSelectionNote.textContent = 'اختر نوع المشروع أولاً، ثم افتح القائمة للبحث بين الطلاب المتاحين.';
+        } else if (isResearch) {
+            studentPickerStatus.textContent = 'حلقة البحث لا تسمح بإضافة طلاب مشاركين.';
+            studentSelectionNote.textContent = 'حلقة البحث تُرسل من طالب واحد فقط دون إضافة طلاب مشاركين.';
+        } else if (visibleCount === 0) {
+            studentPickerStatus.textContent = 'لا توجد نتائج مطابقة أو لا يوجد طلاب متاحون لهذا النوع.';
+            studentSelectionNote.textContent = 'لا يوجد طلاب متاحون حالياً لهذا النوع، أو أن نتائج البحث لا تطابق أي طالب.';
+        } else {
+            studentPickerStatus.textContent = 'يمكنك تحديد حتى طالبين من القائمة المتاحة ثم اعتماد الاختيار.';
+            studentSelectionNote.textContent = 'افتح القائمة للبحث بين الطلاب المتاحين وحدد من تريد إضافته بسهولة.';
+        }
+    }
+
     function refreshCollaboratorState() {
         const isResearch = projectTypeSelect.value === 'حلقة بحث';
         const maxStudents = isResearch ? 0 : 2;
         const count = selectedCount();
-        select.disabled = isResearch || count >= maxStudents;
 
         if (isResearch) {
             teamHint.textContent = 'حلقة البحث تُرسل من طالب واحد فقط دون إضافة طلاب مشاركين.';
         } else {
-            teamHint.textContent = 'يمكنك إضافة ' + (maxStudents - count) + ' طلاب إضافيين كحد أقصى.';
+            teamHint.textContent = 'يمكنك إضافة ' + Math.max(0, maxStudents - count) + ' طلاب إضافيين كحد أقصى.';
         }
+
+        updateSelectedCount();
+        refreshTypeWarning();
+        refreshPickerItems();
     }
 
     function clearCollaborators() {
@@ -170,26 +365,23 @@
         });
     }
 
-    if (select) {
-        select.addEventListener('change', function () {
-            const option = this.options[this.selectedIndex];
-            const studentId = option.value;
-            const isResearch = projectTypeSelect.value === 'حلقة بحث';
+    if (studentSearchInput) {
+        studentSearchInput.addEventListener('input', refreshPickerItems);
+    }
+
+    if (applyStudentSelection) {
+        applyStudentSelection.addEventListener('click', function () {
+            const selectedType = projectTypeSelect.value;
+            const isResearch = selectedType === 'حلقة بحث';
             const maxStudents = isResearch ? 0 : 2;
+            const checkedItems = pickerItems
+                .filter(item => !item.querySelector('.student-picker-check').disabled && item.querySelector('.student-picker-check').checked)
+                .slice(0, maxStudents);
 
-            if (!studentId || document.getElementById('student-' + studentId) || selectedCount() >= maxStudents) {
-                this.value = '';
-                refreshCollaboratorState();
-                return;
-            }
-
-            const chip = document.createElement('div');
-            chip.className = 'student-chip';
-            chip.id = 'student-' + studentId;
-            chip.innerHTML = '<span>' + option.text + '</span><button type="button" class="remove-chip" onclick="removeStudent(\'' + studentId + '\')">x</button><input type="hidden" name="collaborator" value="' + studentId + '">';
-            container.appendChild(chip);
-            this.value = '';
+            clearCollaborators();
+            checkedItems.forEach(item => addStudentChip(item.dataset.studentId, item.dataset.studentLabel));
             refreshCollaboratorState();
+            if (pickerModal) pickerModal.hide();
         });
     }
 
